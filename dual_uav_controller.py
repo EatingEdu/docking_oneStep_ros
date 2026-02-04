@@ -56,7 +56,7 @@ class DualUAVController:
         s1 = self._compute_state_error(self.uav1, self.r_now1)
         s2 = self._compute_state_error(self.uav2, self.r_now2)
 
-        joint_state = np.concatenate([s1, s2])
+        joint_state = np.concatenate([s1, s2]) #这里还需要加入力估计器的值
         self.state_error_pub.publish(data=joint_state.tolist())
 
         # ---- RL inference (8D action) ----
@@ -104,7 +104,7 @@ class DualUAVController:
             err_pos,
             err_vel,
             rot_err,
-            np.zeros(3)   # 角速度占位（与你原代码一致）
+            np.zeros(3)   # 这里的角速度值可以适当做出调整
         ])
 
     def _publish_cmd(self, pub, action):
@@ -112,7 +112,7 @@ class DualUAVController:
         msg.body_rate.x = action[1]
         msg.body_rate.y = action[2]
         msg.body_rate.z = action[3]
-        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.31
+        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.31  #这个值可以根据各子机进行调控
         pub.publish(msg)
 
     def _publish_offboard(self, uav, pub):
