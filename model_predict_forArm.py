@@ -110,6 +110,7 @@ class ModelPredict:
 
 npz_path = "./model/Miql_estimateF_MT_data4+6+7_envTTF/20750/actor_arm.npz"
 predictor = ModelPredict(npz_path)
+
 def modelPredictforArm(state_error):
     action = predictor.eval_action(state_error)
     return action
