@@ -7,91 +7,73 @@ ARM / x86 通用版本
 import numpy as np
 import os
 import pdb
-
 # ===============================
-# 1️⃣ 安全加载 actor npz（ARM/x86 通用）
+# 1️⃣ 安全加载 actor npz
 # ===============================
 
 def load_actor_npz(npz_path):
     if not os.path.exists(npz_path):
         raise FileNotFoundError(f"{npz_path} not found")
-    
     data = dict(np.load(npz_path, allow_pickle=True))
     return convert_to_float32(data)
 
-    
-def convert_to_float32(obj):
-    import numpy as np
 
-    # If obj is a dict, recurse for its values
+def convert_to_float32(obj):
     if isinstance(obj, dict):
         return {k: convert_to_float32(v) for k, v in obj.items()}
-    
-    # If obj is a numpy array with numeric dtype, convert
     elif isinstance(obj, np.ndarray):
         if obj.dtype == object and obj.ndim == 0:
-            # Unpack 0-d object array
             return convert_to_float32(obj.item())
-        elif np.issubdtype(obj.dtype, np.floating):
-            return obj.astype(np.float32)
-        else:
-            # Recurse elementwise for object arrays
-            return np.array([convert_to_float32(v) for v in obj], dtype=object)
-    
-    # If obj is a list or tuple, recurse
-    elif isinstance(obj, (list, tuple)):
-        return type(obj)(convert_to_float32(v) for v in obj)
-    
-    # Otherwise, just return
+        return obj.astype(np.float32)
     else:
         return obj
 
 
 # ===============================
-# 2️⃣ MLP Actor (numpy forward)
+# 2️⃣ Actor (numpy forward)
 # ===============================
 
 class Actor:
+    """
+    对齐 Flax 结构：
+
+    obs → Dense_0 → ReLU → Dense_1 → ReLU → OutputDenseMean → action(mean)
+
+    log_std 不参与 eval_actions
+    """
+
     def __init__(self, params):
-        self.layers = []
-        mlp = params["MLP_0"]
+        self.W1 = params["MLP_0"]["Dense_0"]["kernel"]   # (obs_dim, 512)
+        self.b1 = params["MLP_0"]["Dense_0"]["bias"]
 
-        i = 0
-        while f"Dense_{i}" in mlp:
-            W = mlp[f"Dense_{i}"]["kernel"]
-            b = mlp[f"Dense_{i}"]["bias"]
-            self.layers.append((W.astype(np.float32), b.astype(np.float32)))
-            i += 1
+        self.W2 = params["MLP_0"]["Dense_1"]["kernel"]   # (512, 256)
+        self.b2 = params["MLP_0"]["Dense_1"]["bias"]
 
-        self.mean_W = params["OutputDenseMean"]["kernel"].astype(np.float32)
-        self.mean_b = params["OutputDenseMean"]["bias"].astype(np.float32)
+        self.Wm = params["OutputDenseMean"]["kernel"]    # (256, act_dim)
+        self.bm = params["OutputDenseMean"]["bias"]
 
-        self.log_std = params["OutpuLogStd"].astype(np.float32)  # 保持原 key 名
+    @staticmethod
+    def relu(x):
+        return np.maximum(x, 0)
 
-        print("[INFO] Actor loaded:")
-        for i, (W, b) in enumerate(self.layers):
-            print(f"  Dense_{i}: {W.shape} -> {b.shape}")
-        print(f"  OutputMean: {self.mean_W.shape} -> {self.mean_b.shape}")
-        print(f"  LogStd: {self.log_std.shape}")
+    def __call__(self, obs):
+        """
+        obs: (obs_dim,) or (B, obs_dim)
+        return: (act_dim,) or (B, act_dim)
+        """
+        x = obs @ self.W1 + self.b1
+        x = self.relu(x)
 
-    def forward(self, x):
-        for W, b in self.layers:
-            x = np.maximum(0, x @ W + b)  # ReLU
-        # for W, b in self.layers:
-        #     x = np.tanh(x @ W + b)
-        mean = x @ self.mean_W + self.mean_b
+        x = x @ self.W2 + self.b2
+        x = self.relu(x)   # activate_final=True
+
+        mean = x @ self.Wm + self.bm
         return mean
+    
 
-    def sample(self, obs, deterministic=True):
-        mean = self.forward(obs)
-        if deterministic:
-            return np.tanh(mean)
-        std = np.exp(self.log_std)
-        # 保证广播正确
-        return np.tanh(mean + np.random.randn(*mean.shape) * std)
 
 # ===============================
-# 3️⃣ 用户接口：ModelPredict
+# 3️⃣ 用户接口
 # ===============================
 
 class ModelPredict:
@@ -100,11 +82,11 @@ class ModelPredict:
         print("[INFO] Loaded keys:", list(params.keys()))
         self.actor = Actor(params)
 
-    def eval_action(self, obs, deterministic=True):
+    def eval_action(self, obs):
         obs = np.asarray(obs, dtype=np.float32)
         if obs.ndim == 1:
             obs = obs[None, :]
-        act = self.actor.sample(obs, deterministic)
+        act = self.actor(obs)
         return act.squeeze(0)
 
 
