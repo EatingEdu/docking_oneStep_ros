@@ -4,7 +4,7 @@ from geometry_msgs.msg import Point, PoseStamped
 from std_msgs.msg import Float64MultiArray, Int32
 from mavros_msgs.msg import AttitudeTarget
 
-from model_predict_SPC_Miql import modelPredict
+from model_predict_forArm import modelPredictforArm
 from uav_state import UAVState
 from math_util import *
 
@@ -60,7 +60,7 @@ class DualUAVController:
         self.state_error_pub.publish(data=joint_state.tolist())
 
         # ---- RL inference (8D action) ----
-        action = modelPredict(joint_state)   # shape (8,)
+        action = modelPredictforArm(joint_state)   # shape (8,)
 
         a1 = action[:4]
         a2 = action[4:]
