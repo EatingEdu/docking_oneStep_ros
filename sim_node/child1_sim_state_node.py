@@ -38,7 +38,10 @@ def main():
 
         # ---- state ----
         s = State()
-        s.mode = "OFFBOARD"
+        if t > 10.:
+            s.mode = "OFFBOARD"
+        else:
+            s.mode = "POS"
         state_pub.publish(s)
 
         # ---- state_pos ----

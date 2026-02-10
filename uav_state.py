@@ -7,10 +7,11 @@ from std_msgs.msg import Bool
 
 
 class UAVState:
-    def __init__(self, ns="/child1"):
+    def __init__(self, ns="/child1", mass = 1.5):
         self.ns = ns
 
         # ---------- 原始变量 ----------
+        self.mass = mass
         self.state_pos = None
         self.nominal_pos = np.zeros(3)
         self.nominal_euler = None
@@ -23,12 +24,13 @@ class UAVState:
         self.mode = None
 
         # ---------- 新增变量 ----------
-        self.pos = None
-        self.quat = None
+        self.pos = np.zeros(3)
+        self.quat = np.array([1, 0,0,0])
         #self.r_now = None
-        self.vel = None
+        self.vel = np.zeros(3)
         self.mav_vel_receive = None
-        self.randinit_pos = None
+        self.omega = np.zeros(3)
+        self.randinit_pos = PoseStamped()
 
         # ---------- Subscribers ----------
         rospy.Subscriber(f"{ns}/mavros/local_position/pose",
@@ -121,6 +123,12 @@ class UAVState:
             data.twist.linear.x,
             data.twist.linear.y,
             data.twist.linear.z
+        ])
+        
+        self.omega = np.array([
+            data.twist.angular.x,
+            data.twist.angular.y,
+            data.twist.angular.z
         ])
 
     # ===================== Utilities ===================== #

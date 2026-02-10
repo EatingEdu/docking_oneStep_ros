@@ -7,6 +7,13 @@ ARM / x86 通用版本
 import numpy as np
 import os
 import pdb
+import sys
+
+sys.path.append("../")
+
+from dynamics import *
+from model_predict_pid import *
+
 # ===============================
 # 1️⃣ 安全加载 actor npz
 # ===============================
@@ -92,12 +99,19 @@ class ModelPredict:
 
 npz_path = "./model/Miql_estimateF_MT_data4+6+7_envTTF/20750/actor_arm.npz"
 predictor = ModelPredict(npz_path)
+dynamics_uav = Dynamics(thrust_to_weight=1/0.5)  
+pid_control_uav  = NonlinearPositionController(dynamics_uav)
+dt = 0.01
 
-def modelPredictforArm(state_error):
+def modelPredict(uav, state_error, rot, rt):
+    #pdb.set_trace()
+    global dt
+    dynamics_uav.update_state(uav.pos, uav.vel, uav.omega, rot)
     action = predictor.eval_action(state_error)
-    return action
-
-
+    force_torque = pid_control_uav.step_force_torque(dynamics=dynamics_uav1, goal=uav.nominal_pos, dt=dt, action=action[:4])
+    #pdb.set_trace()
+    estimate_force_torque = get_estimate_force_torque(rt, uav, rot, force_torque)
+    return action, estimate_force_torque 
 
 
 

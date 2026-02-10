@@ -35,7 +35,11 @@ def main():
         vel_pub.publish(vel)
 
         s = State()
-        s.mode = "OFFBOARD"
+        #print(t)
+        if t > 20.0:
+            s.mode = "OFFBOARD"
+        else:
+            s.mode = "POS"
         state_pub.publish(s)
 
         p = Point()

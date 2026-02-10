@@ -4,9 +4,14 @@ from geometry_msgs.msg import Point, PoseStamped
 from std_msgs.msg import Float64MultiArray, Int32
 from mavros_msgs.msg import AttitudeTarget
 
-from model_predict_forArm import modelPredictforArm
+import sys 
+sys.path.append("../")
+from model_predict_forArm import modelPredict
+from model_predict_pid import *
 from uav_state import UAVState
 from math_util import *
+
+import pdb
 
 
 class DualUAVController:
@@ -14,27 +19,37 @@ class DualUAVController:
         self.uav1 = uav1
         self.uav2 = uav2
 
-        self.control_name = "rl"  # or "pid"
+        self.control_name = "pid"  # or "pid"
 
         # ---- rotation matrices ----
         self.r_now1 = np.zeros(9)
         self.r_now2 = np.zeros(9)
         self.r_d = np.eye(3).reshape(-1)
+        
+        self.rt = self._init_estimate_force_torque(self.uav1)
+        self.estimate_force_torque = np.zeros(6)
 
         # ---- publishers ----
-        self.cmd_pub1 = rospy.Publisher("/rl_cmd1", AttitudeTarget, queue_size=1)
+        self.cmd_pub1 = rospy.Publisher("/rl_cmd1", AttitudeTarget, queue_size=1) # /mavros/setpoint_raw/attitude
         self.cmd_pub2 = rospy.Publisher("/rl_cmd2", AttitudeTarget, queue_size=1)
+        
+        """
+        实飞控制节点输出
+        #px4_command_pub_ = rospy.Publisher("/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
+        """
+        
 
         self.nominal_pub1 = rospy.Publisher("/child1/nominal_pos_enu", Point, queue_size=1)
         self.nominal_pub2 = rospy.Publisher("/child2/nominal_pos_enu", Point, queue_size=1)
 
-        self.first_pub1 = rospy.Publisher("/child1/randinit_pos", PoseStamped, queue_size=1)
-        self.first_pub2 = rospy.Publisher("/child2/randinit_pos", PoseStamped, queue_size=1)
+        self.randinit_pos_pub1 = rospy.Publisher("/child1/randinit_pos", PoseStamped, queue_size=1)
+        self.randinit_pos_pub2 = rospy.Publisher("/child2/randinit_pos", PoseStamped, queue_size=1)
 
         self.offboard_pub1 = rospy.Publisher("/child1/offboard_start", Int32, queue_size=1)
         self.offboard_pub2 = rospy.Publisher("/child2/offboard_start", Int32, queue_size=1)
 
         self.state_error_pub = rospy.Publisher("/dual/state_error", Float64MultiArray, queue_size=1)
+        self.estimate_force_torque_pub = rospy.Publisher("/estimate_force_torque", Float64MultiArray, queue_size=1)
 
         self.timer = rospy.Timer(rospy.Duration(0.01), self.control_loop)
 
@@ -49,18 +64,23 @@ class DualUAVController:
         self.r_now2 = quat2rot_change(self.r_now2, self.uav2.quat)
 
         # ---- nominal position init ----
-        self._handle_first(self.uav1, self.nominal_pub1, self.first_pub1)
-        self._handle_first(self.uav2, self.nominal_pub2, self.first_pub2)
+        self._handle_first(self.uav1, self.nominal_pub1, self.randinit_pos_pub1)
+        self._handle_first(self.uav2, self.nominal_pub2, self.randinit_pos_pub2)
 
         # ---- state error ----
         s1 = self._compute_state_error(self.uav1, self.r_now1)
-        s2 = self._compute_state_error(self.uav2, self.r_now2)
-
-        joint_state = np.concatenate([s1, s2]) #这里还需要加入力估计器的值
+        s2 = self._compute_state_error(self.uav2, self.r_now2)  #这里需要注意，现在是都只把子机当前的位置作为了悬停位置，不做进一步的对接操作，需要注意
+        #force_torque = np.zeros(6)
+        joint_state = np.concatenate([s1, self.estimate_force_torque, s2]) #这里还需要加入力估计器的值
         self.state_error_pub.publish(data=joint_state.tolist())
-
-        # ---- RL inference (8D action) ----
-        action = modelPredictforArm(joint_state)   # shape (8,)
+        #pdb.set_trace()
+        if self.control_name == "rl":
+            #pdb.set_trace()
+            # ---- RL inference (8D action) ----
+            action, self.estimate_force_torque = modelPredict(self.uav1, joint_state, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
+        else: #control_name == "pid" 做稳定悬停时使用
+            action, self.estimate_force_torque = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
+            
 
         a1 = action[:4]
         a2 = action[4:]
@@ -71,11 +91,14 @@ class DualUAVController:
 
         self._publish_offboard(self.uav1, self.offboard_pub1)
         self._publish_offboard(self.uav2, self.offboard_pub2)
+        
+        self._publish_estimate_force_torque(self.estimate_force_torque, self.estimate_force_torque_pub) #以uav1为参照
 
     # ================= helper funcs ================= #
 
     def _handle_first(self, uav, nominal_pub, first_pub):
         if uav.first == 1: 
+            #pdb.set_trace()
             """
             进入oddboard，记录当前位置为目标位置，
             当前这一部分两架无人机都是为了完成悬停
@@ -90,11 +113,13 @@ class DualUAVController:
         p.y = uav.nominal_pos[0]
         p.z = uav.nominal_pos[2]
         nominal_pub.publish(p) 
-
+        # pdb.set_trace()
+        # print(uav.randinit_pos)
         if uav.randinit_pos is not None:
+            #print(uav.randinit_pos)
             first_pub.publish(uav.randinit_pos)
 
-    # check_end 20260204 2140
+
     def _compute_state_error(self, uav, r_now):
         err_pos = uav.pos - uav.nominal_pos 
         err_vel = body2worldVel(r_now, uav.vel)
@@ -115,7 +140,28 @@ class DualUAVController:
         msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.31  #这个值可以根据各子机进行调控
         pub.publish(msg)
 
+    
+    def _init_estimate_force_torque(self, uav):
+        w = 7
+        epsilon  = 1
+        inertia = np.array([0.0685339,0.08342368,0.1501083])
+        K1,K1_K2 = getK(w,epsilon)
+        I_b = inertia
+        v = uav.vel
+        w_vel = uav.omega
+        dt = 0.01
+        rt = RT(v, w_vel , I_b = inertia * np.eye(3), u = np.array([0,0,0]), 
+                        R_b = np.eye(3), torq_b = np.zeros(3).reshape(-1,1), K1 = K1, K1_K2 = K1_K2, dt = dt, m=uav.mass)
+
+        return rt
+    
     def _publish_offboard(self, uav, pub):
         m = Int32()
         m.data = uav.start
         pub.publish(m)
+        
+    def _publish_estimate_force_torque(self, estimate_force_torque, pub):
+        msg = Float64MultiArray()
+        msg.data = estimate_force_torque
+        pub.publish(msg)
+        
