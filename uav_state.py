@@ -71,7 +71,7 @@ class UAVState:
 
     def arm_cb(self, data):
         self.arm = data
-        # print(f"[{self.ns}] arm is {self.arm}")
+        print(f"[{self.ns}] arm is {self.arm}")
 
     def get_rc_channel_cb(self, data):
         self.sw = data.channels[4]  #offoard的判定项，需注意

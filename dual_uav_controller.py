@@ -9,7 +9,7 @@ sys.path.append("../")
 from model_predict_forArm import modelPredict
 from model_predict_pid import *
 from uav_state import UAVState
-from math_util import *
+from utils.math_util import *
 
 import pdb
 
@@ -30,13 +30,14 @@ class DualUAVController:
         self.estimate_force_torque = np.zeros(6)
 
         # ---- publishers ----
-        self.cmd_pub1 = rospy.Publisher("/rl_cmd1", AttitudeTarget, queue_size=1) # /mavros/setpoint_raw/attitude
-        self.cmd_pub2 = rospy.Publisher("/rl_cmd2", AttitudeTarget, queue_size=1)
+        # self.cmd_pub1 = rospy.Publisher("/rl_cmd1", AttitudeTarget, queue_size=1) # /mavros/setpoint_raw/attitude
+        # self.cmd_pub2 = rospy.Publisher("/rl_cmd2", AttitudeTarget, queue_size=1)
         
-        """
-        实飞控制节点输出
-        #px4_command_pub_ = rospy.Publisher("/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
-        """
+        
+        # ---- 实飞控制节点输出 ----
+        self.cmd_pub1 = rospy.Publisher("/child1/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
+        self.cmd_pub2 = rospy.Publisher("/child2/mavros/setpoint_raw/attitude", AttitudeTarget, queue_size=1)
+        
         
 
         self.nominal_pub1 = rospy.Publisher("/child1/nominal_pos_enu", Point, queue_size=1)

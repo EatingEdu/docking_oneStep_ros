@@ -1,6 +1,5 @@
 import numpy as np
 import sys
-sys.path.append("/home/fyt/catkin_admittance/src")
 from utils.quad_utils import *
 GRAV = 9.81
 EPS = 1e-6
