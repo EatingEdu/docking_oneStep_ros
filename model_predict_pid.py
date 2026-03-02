@@ -321,7 +321,7 @@ def modelPredict_pid(uav1, uav2, rot1, rot2, rt):
     #global first
     dynamics_uav1.update_state(uav1.pos, uav1.vel, uav1.omega, rot1)
     action1, _ = pid_control_uav1.stepThrustOmega50hz(uav1.pos, uav1.vel, rot1, uav1.omega, uav1.nominal_pos , uav1.mass)
-    action2, _ = pid_control_uav2.stepThrustOmega50hz(uav2.pos, uav2.vel, rot2, uav2.omega, uav1.nominal_pos , uav2.mass)
+    action2, _ = pid_control_uav2.stepThrustOmega50hz(uav2.pos, uav2.vel, rot2, uav2.omega, uav2.nominal_pos , uav2.mass)
     
     force_torque = pid_control_uav1.step_force_torque(dynamics=dynamics_uav1, goal=uav1.nominal_pos, dt=dt, action=action1)
     #force_torque = pid_control_uav1.step_force_torque(dynamics=dynamics, goal=goal, dt=dt, action=action)

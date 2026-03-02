@@ -106,7 +106,7 @@ dt = 0.01
 def modelPredict(uav, state_error, rot, rt):
     #pdb.set_trace()
     global dt
-    dynamics_uav.update_state(uav.pos, uav.vel, uav.omega, rot)
+    dynamics_uav.update_state(uav.pos, uav.vel, uav.omega, rot) #这里主要时为了做外力估计
     action = predictor.eval_action(state_error)
     force_torque = pid_control_uav.step_force_torque(dynamics=dynamics_uav1, goal=uav.nominal_pos, dt=dt, action=action[:4])
     #pdb.set_trace()
