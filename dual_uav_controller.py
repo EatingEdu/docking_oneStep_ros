@@ -40,8 +40,8 @@ class DualUAVController:
         
         
 
-        self.nominal_pub1 = rospy.Publisher("/child1/nominal_pos_enu", Point, queue_size=1)
-        self.nominal_pub2 = rospy.Publisher("/child2/nominal_pos_enu", Point, queue_size=1)
+        self.nominal_pub1 = rospy.Publisher("/child1/nominal_pos", Point, queue_size=1)
+        self.nominal_pub2 = rospy.Publisher("/child2/nominal_pos", Point, queue_size=1)
 
         self.randinit_pos_pub1 = rospy.Publisher("/child1/randinit_pos", PoseStamped, queue_size=1)
         self.randinit_pos_pub2 = rospy.Publisher("/child2/randinit_pos", PoseStamped, queue_size=1)
@@ -110,8 +110,8 @@ class DualUAVController:
             uav.first = 2
 
         p = Point()  #这里北西天又转回了东北天，为了和之前的mavros消息对齐
-        p.x = -uav.nominal_pos[1]
-        p.y = uav.nominal_pos[0]
+        p.x = uav.nominal_pos[0]
+        p.y = uav.nominal_pos[1]
         p.z = uav.nominal_pos[2]
         nominal_pub.publish(p) 
         # pdb.set_trace()

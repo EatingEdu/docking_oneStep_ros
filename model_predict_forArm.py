@@ -97,7 +97,7 @@ class ModelPredict:
         return act.squeeze(0)
 
 
-npz_path = "./model/Miql_estimateF_MT_data4+6+7_envTTF/20750/actor_arm.npz"
+npz_path = "./model/Miql_estimateF_MT_data4+6+7_envTTF/20750/actor_arm.npz" #这里注意模型的使用
 predictor = ModelPredict(npz_path)
 dynamics_uav = Dynamics(thrust_to_weight=1/0.5)  
 pid_control_uav  = NonlinearPositionController(dynamics_uav)
