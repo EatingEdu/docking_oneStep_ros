@@ -61,8 +61,8 @@ class DualUAVController:
             return
 
         # ---- rotation ----
-        self.r_now1 = quat2rot_change(self.r_now1, self.uav1.quat)
-        self.r_now2 = quat2rot_change(self.r_now2, self.uav2.quat)
+        self.r_now1 = quat2rot_change(self.uav1.quat)
+        self.r_now2 = quat2rot_change(self.uav2.quat)
 
         # ---- nominal position init ----
         self._handle_first(self.uav1, self.nominal_pub1, self.randinit_pos_pub1)
@@ -120,7 +120,7 @@ class DualUAVController:
             #print(uav.randinit_pos)
             first_pub.publish(uav.randinit_pos)
 
-
+    # 这里统一check一下，这里的nominal_pos与pos是否是同一个坐标系下的
     def _compute_state_error(self, uav, r_now):
         err_pos = uav.pos - uav.nominal_pos 
         err_vel = body2worldVel(r_now, uav.vel)

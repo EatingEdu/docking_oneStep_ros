@@ -91,10 +91,15 @@ class UAVState:
 
     # ===================== 新增 callbacks ===================== #
 
-    def local_pos_cb(self, data):  #这里是之前的代码，东北天->北西天，建立坐标系的时候需要注意一下
+    """
+    #这里是之前的代码，东北天->北西天，建立坐标系的时候需要注意一下 0228
+    最新一版整个坐标轴的建立靠动捕来决定，按照北西天的方式来建立整个坐标系，不需要考虑坐标的转换
+    
+    """
+    def local_pos_cb(self, data):  
         self.pos = np.array([
+            data.pose.position.x,
             data.pose.position.y,
-            -data.pose.position.x,
             data.pose.position.z
         ])
 
