@@ -19,7 +19,7 @@ class DualUAVController:
         self.uav1 = uav1
         self.uav2 = uav2
 
-        self.control_name = "pid"  # or "pid"
+        self.control_name = "rl"  # or "pid"
 
         # ---- rotation matrices ----
         self.r_now1 = np.zeros(9)
