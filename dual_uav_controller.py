@@ -28,6 +28,7 @@ class DualUAVController:
         
         self.rt = self._init_estimate_force_torque(self.uav1)
         self.estimate_force_torque = np.zeros(6)
+        self.force_torque_cmd = np.zeros(4)
 
         # ---- publishers ----
         # self.cmd_pub1 = rospy.Publisher("/rl_cmd1", AttitudeTarget, queue_size=1) # /mavros/setpoint_raw/attitude
@@ -51,6 +52,7 @@ class DualUAVController:
 
         self.state_error_pub = rospy.Publisher("/dual/state_error", Float64MultiArray, queue_size=1)
         self.estimate_force_torque_pub = rospy.Publisher("/estimate_force_torque", Float64MultiArray, queue_size=1)
+        self.force_torque_cmd_pub = rospy.Publisher("/force_torque_cmd", Float64MultiArray, queue_size=1)
 
         self.timer = rospy.Timer(rospy.Duration(0.01), self.control_loop)
 
@@ -78,9 +80,9 @@ class DualUAVController:
         if self.control_name == "rl":
             #pdb.set_trace()
             # ---- RL inference (8D action) ----
-            action, self.estimate_force_torque = modelPredict(self.uav1, joint_state, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
+            action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
         else: #control_name == "pid" 做稳定悬停时使用
-            action, self.estimate_force_torque = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
+            action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
             
 
         a1 = action[:4]
@@ -94,6 +96,7 @@ class DualUAVController:
         self._publish_offboard(self.uav2, self.offboard_pub2)
         
         self._publish_estimate_force_torque(self.estimate_force_torque, self.estimate_force_torque_pub) #以uav1为参照
+        self._publish_estimate_force_torque(self.force_torque_cmd, self.force_torque_cmd_pub) #以uav1为参照
 
     # ================= helper funcs ================= #
 

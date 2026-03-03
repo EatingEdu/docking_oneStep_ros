@@ -109,9 +109,10 @@ def modelPredict(uav, state_error, rot, rt):
     dynamics_uav.update_state(uav.pos, uav.vel, uav.omega, rot) #这里主要时为了做外力估计
     action = predictor.eval_action(state_error)
     force_torque = pid_control_uav.step_force_torque(dynamics=dynamics_uav1, goal=uav.nominal_pos, dt=dt, action=action[:4])
-    #pdb.set_trace()
+    print(f"rl cmd force_torque is {force_torque}")
     estimate_force_torque = get_estimate_force_torque(rt, uav, rot, force_torque)
-    return action, estimate_force_torque 
+    force_torque_cmd = np.array([force_torque[0], force_torque[1][0], force_torque[1][1], force_torque[1][2]])
+    return action, estimate_force_torque , force_torque_cmd
 
 
 

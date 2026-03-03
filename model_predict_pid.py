@@ -323,11 +323,12 @@ def modelPredict_pid(uav1, uav2, rot1, rot2, rt):
     action1, _ = pid_control_uav1.stepThrustOmega50hz(uav1.pos, uav1.vel, rot1, uav1.omega, uav1.nominal_pos , uav1.mass)
     action2, _ = pid_control_uav2.stepThrustOmega50hz(uav2.pos, uav2.vel, rot2, uav2.omega, uav2.nominal_pos , uav2.mass)
     
+    #pdb.set_trace()
     force_torque = pid_control_uav1.step_force_torque(dynamics=dynamics_uav1, goal=uav1.nominal_pos, dt=dt, action=action1)
-    #force_torque = pid_control_uav1.step_force_torque(dynamics=dynamics, goal=goal, dt=dt, action=action)
-    
+    print(f"pid cmd force_torque is {force_torque}")
     estimate_force_torque = get_estimate_force_torque(rt, uav1, rot1, force_torque)
-    return np.concatenate([action1, action2]), estimate_force_torque
+    force_torque_cmd = np.array([force_torque[0], force_torque[1][0], force_torque[1][1], force_torque[1][2]])
+    return np.concatenate([action1, action2]), estimate_force_torque, force_torque_cmd
 
 
 
@@ -338,6 +339,7 @@ def get_estimate_force_torque(rt, uav, rot, force_torque):
     rt.v = uav.vel.reshape(-1,1)
     rt.R_b = rot
     rt.w_vel = uav.omega.reshape(-1,1)
+    #pdb.set_trace()
     estimate_force_torque = rt.getRt()
     estimate_force_world = estimate_force_torque.reshape(1,-1)[0]
     estimate_force_world[2] = -estimate_force_world[2]
