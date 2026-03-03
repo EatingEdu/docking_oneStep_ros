@@ -32,7 +32,7 @@ def quat2rot_change(quat):
                         [2*x*y + 2*z*w,       1 - 2*x*x - 2*z*z, 2*y*z - 2*x*w],
                         [2*x*z - 2*y*w,       2*y*z + 2*x*w,     1 - 2*x*x - 2*y*y]
                     ])
-    return r_now.reshape(-1)
+    return r_now.T.reshape(-1)
 
 # 这里只是单纯做了一个机体到世界系下的转换
 def body2worldVel(r_now, vel):
