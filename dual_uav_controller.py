@@ -28,6 +28,7 @@ class DualUAVController:
         
         self.rt = self._init_estimate_force_torque(self.uav1)
         self.estimate_force_torque = np.zeros(6)
+        self.estimate_force_torque_bias = np.zeros(6)
         self.force_torque_cmd = np.zeros(4)
 
         # ---- publishers ----
@@ -52,6 +53,8 @@ class DualUAVController:
 
         self.state_error_pub = rospy.Publisher("/dual/state_error", Float64MultiArray, queue_size=1)
         self.estimate_force_torque_pub = rospy.Publisher("/estimate_force_torque", Float64MultiArray, queue_size=1)
+        self.estimate_force_torque_bias_pub = rospy.Publisher("/estimate_force_torque_bias", Float64MultiArray, queue_size=1)
+        
         self.force_torque_cmd_pub = rospy.Publisher("/force_torque_cmd", Float64MultiArray, queue_size=1)
 
         self.timer = rospy.Timer(rospy.Duration(0.01), self.control_loop)
@@ -63,8 +66,12 @@ class DualUAVController:
             return
 
         # ---- rotation ----
-        self.r_now1 = quat2rot_change(self.uav1.quat)
-        self.r_now2 = quat2rot_change(self.uav2.quat)
+        #pdb.set_trace()
+        self.r_now1 = eulerAnglesToRotationMatrix(quan2angle(self.uav1.quat)).reshape(-1)
+        self.r_now2 = eulerAnglesToRotationMatrix(quan2angle(self.uav2.quat)).reshape(-1)
+        
+        # self.r_now1 = quat2rot_change(self.uav1.quat)
+        # self.r_now2 = quat2rot_change(self.uav2.quat)
 
         # ---- nominal position init ----
         self._handle_first(self.uav1, self.nominal_pub1, self.randinit_pos_pub1)
@@ -73,8 +80,10 @@ class DualUAVController:
         # ---- state error ----
         s1 = self._compute_state_error(self.uav1, self.r_now1)
         s2 = self._compute_state_error(self.uav2, self.r_now2)  #这里需要注意，现在是都只把子机当前的位置作为了悬停位置，不做进一步的对接操作，需要注意
-        #force_torque = np.zeros(6)
-        joint_state = np.concatenate([s1, self.estimate_force_torque, s2]) #这里还需要加入力估计器的值
+        #force_torque = np.zeros(6)\
+        force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
+        force_torque_input = np.zeros(6)
+        joint_state = np.concatenate([s1,force_torque_input , s2]) #这里还需要加入力估计器的值
         self.state_error_pub.publish(data=joint_state.tolist())
         #pdb.set_trace()
         if self.control_name == "rl":
@@ -95,7 +104,8 @@ class DualUAVController:
         self._publish_offboard(self.uav1, self.offboard_pub1)
         self._publish_offboard(self.uav2, self.offboard_pub2)
         
-        self._publish_estimate_force_torque(self.estimate_force_torque, self.estimate_force_torque_pub) #以uav1为参照
+        self._publish_estimate_force_torque(self.estimate_force_torque-self.estimate_force_torque_bias, self.estimate_force_torque_pub) #以uav1为参照
+        self._publish_estimate_force_torque(self.estimate_force_torque_bias, self.estimate_force_torque_bias_pub) #以uav1为参照
         self._publish_estimate_force_torque(self.force_torque_cmd, self.force_torque_cmd_pub) #以uav1为参照
 
     # ================= helper funcs ================= #
@@ -111,6 +121,8 @@ class DualUAVController:
             uav.nominal_pos[1] = uav.randinit_pos.pose.position.y
             uav.nominal_pos[2] = uav.randinit_pos.pose.position.z
             uav.first = 2
+            if uav.ns == "/child1":
+                self.estimate_force_torque_bias = self.estimate_force_torque
 
         p = Point()  #这里北西天又转回了东北天，为了和之前的mavros消息对齐
         p.x = uav.nominal_pos[0]
@@ -128,12 +140,12 @@ class DualUAVController:
         err_pos = uav.pos - uav.nominal_pos 
         err_vel = body2worldVel(r_now, uav.vel)
         rot_err = errorRot(r_now, self.r_d)
-
+        err_omega = errOmega(r_now, uav.omega)
         return np.concatenate([
             err_pos,
             err_vel,
             rot_err,
-            np.zeros(3)   # 这里的角速度值可以适当做出调整
+            err_omega   # 这里的角速度值可以适当做出调整
         ])
 
     def _publish_cmd(self, pub, action):
@@ -141,7 +153,8 @@ class DualUAVController:
         msg.body_rate.x = action[1]
         msg.body_rate.y = action[2]
         msg.body_rate.z = action[3]
-        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.31  #这个值可以根据各子机进行调控
+        
+        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.3  #这个值可以根据各子机进行调控 uav1 0.3
         pub.publish(msg)
 
     

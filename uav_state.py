@@ -75,11 +75,11 @@ class UAVState:
 
     def get_rc_channel_cb(self, data):
         self.sw = data.channels[4]  #offoard的判定项，需注意
-        if self.sw > 1900:
-            self.start = 1
-        else:
-            self.start = 0
-            self.first = 0
+        # if self.sw > 25000:
+        #     self.start = 1
+        # else:
+        #     self.start = 0
+        #     self.first = 0
 
     def mode_cb(self, data):
         self.mode = data
@@ -120,6 +120,10 @@ class UAVState:
             self.randinit_pos.pose.position.z = self.pos[2]
             self.first = 1
         elif self.first == 0:
+            self.randinit_pos = deepcopy(data)
+            self.randinit_pos.pose.position.x = self.pos[0]
+            self.randinit_pos.pose.position.y = self.pos[1]
+            self.randinit_pos.pose.position.z = self.pos[2]
             self.nominal_pos[:] = self.pos
 
     def mav_vel_receive_cb(self, data):

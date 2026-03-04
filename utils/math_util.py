@@ -1,5 +1,5 @@
 import numpy as np
-
+import pdb
 
 """
 这个计算方式看起来是东北天转北西天的转置矩阵T
@@ -32,7 +32,7 @@ def quat2rot_change(quat):
                         [2*x*y + 2*z*w,       1 - 2*x*x - 2*z*z, 2*y*z - 2*x*w],
                         [2*x*z - 2*y*w,       2*y*z + 2*x*w,     1 - 2*x*x - 2*y*y]
                     ])
-    return r_now.T.reshape(-1)
+    return r_now.reshape(-1)
 
 # 这里只是单纯做了一个机体到世界系下的转换
 def body2worldVel(r_now, vel):
@@ -43,6 +43,7 @@ def body2worldVel(r_now, vel):
     # local_vel[1] = r_now[3]*x + r_now[4]*y + r_now[5]*z
     # local_vel[2] = r_now[6]*x + r_now[7]*y + r_now[8]*z
     return R @ vel
+    #return vel
 
 
 def errorRot(r_now, r_d):
@@ -56,9 +57,16 @@ def errorRot(r_now, r_d):
     # rot[6] = r_d[2]*r_now[0] + r_d[5]*r_now[3] + r_d[8]*r_now[6]
     # rot[7] = r_d[2]*r_now[1] + r_d[5]*r_now[4] + r_d[8]*r_now[7]
     # rot[8] = r_d[2]*r_now[2] + r_d[5]*r_now[5] + r_d[8]*r_now[8]
+    #pdb.set_trace()
     R_now = r_now.reshape(3,3)
     R_d = r_d.reshape(3,3)
     R_err = R_d.T @ R_now
+    #pdb.set_trace()
     return R_err.reshape(-1)
 
 
+def errOmega(r_b2w, omega):
+    #pdb.set_trace()
+    err_omega = r_b2w.reshape(3,3) @ omega
+    #return err_omega
+    return omega

@@ -98,6 +98,10 @@ class ModelPredict:
 
 
 npz_path = "./model/Miql_estimateF_MT_data4+6+7_envTTF/20750/actor_arm.npz" #这里注意模型的使用
+npz_path = "./model/0225_model0212Sim60k_data4_9_14_seg8_2_off08_sr08__envRanEFD__29125_output_arm_params/actor_arm.npz"
+npz_path = "./model/0225_model0212Sim60k_data4_9_14_seg8_2_off08_sr08__envRanEFDALLStep__48750_output_arm_params/actor_arm.npz"
+npz_path = "./model/modeldata8+9+10_envTTTrandomM41k__data9+11+12_envTTTrandomM15_offRatio05_sR05__13625_output_arm_params/actor_arm.npz"
+
 predictor = ModelPredict(npz_path)
 dynamics_uav = Dynamics(thrust_to_weight=1/0.5)  
 pid_control_uav  = NonlinearPositionController(dynamics_uav)

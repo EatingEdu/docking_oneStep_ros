@@ -319,9 +319,11 @@ pid_control_uav2 = NonlinearPositionController(dynamics_uav2)
 dt = 0.01
 def modelPredict_pid(uav1, uav2, rot1, rot2, rt):
     #global first
-    dynamics_uav1.update_state(uav1.pos, uav1.vel, uav1.omega, rot1)
-    action1, _ = pid_control_uav1.stepThrustOmega50hz(uav1.pos, uav1.vel, rot1, uav1.omega, uav1.nominal_pos , uav1.mass)
-    action2, _ = pid_control_uav2.stepThrustOmega50hz(uav2.pos, uav2.vel, rot2, uav2.omega, uav2.nominal_pos , uav2.mass)
+    vel1 = rot1 @ uav1.vel 
+    vel2 = rot2 @ uav2.vel 
+    dynamics_uav1.update_state(uav1.pos, vel1, uav1.omega, rot1)
+    action1, _ = pid_control_uav1.stepThrustOmega50hz(uav1.pos, vel1, rot1, uav1.omega, uav1.nominal_pos , uav1.mass)
+    action2, _ = pid_control_uav2.stepThrustOmega50hz(uav2.pos, vel2, rot2, uav2.omega, uav2.nominal_pos , uav2.mass)
     
     #pdb.set_trace()
     force_torque = pid_control_uav1.step_force_torque(dynamics=dynamics_uav1, goal=uav1.nominal_pos, dt=dt, action=action1)
