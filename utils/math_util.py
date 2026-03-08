@@ -10,7 +10,7 @@ T=[[0,1,0],
 这里应该是直接认为该矩阵是body2world的矩阵，所以没有做进一步的处理
 后面可以尝试调整是不是需要进行转置操作
 """
-def quat2rot_change_old(quat):
+def quat2rot_change(quat):
     w, x, y, z = quat
     r_now = np.zeros(9)
     r_now[0] = 2*x*y + 2*z*w
@@ -25,7 +25,7 @@ def quat2rot_change_old(quat):
     return r_now
 
 
-def quat2rot_change(quat):
+def quat2rot_change_nwu(quat):
     w, x, y, z = quat
     r_now = np.array([
                         [1 - 2*y*y - 2*z*z,   2*x*y - 2*z*w,     2*x*z + 2*y*w],

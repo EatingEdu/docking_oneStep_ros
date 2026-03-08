@@ -67,11 +67,16 @@ class DualUAVController:
 
         # ---- rotation ----
         #pdb.set_trace()
-        self.r_now1 = eulerAnglesToRotationMatrix(quan2angle(self.uav1.quat)).reshape(-1)
-        self.r_now2 = eulerAnglesToRotationMatrix(quan2angle(self.uav2.quat)).reshape(-1)
+        # self.r_now1 = eulerAnglesToRotationMatrix(quan2angle(self.uav1.quat)).reshape(-1)
+        # self.r_now2 = eulerAnglesToRotationMatrix(quan2angle(self.uav2.quat)).reshape(-1)
         
-        # self.r_now1 = quat2rot_change(self.uav1.quat)
-        # self.r_now2 = quat2rot_change(self.uav2.quat)
+        # self.r_now1 = quat2rot_change_nwu(self.uav1.quat)
+        # self.r_now2 = quat2rot_change_nwu(self.uav2.quat)
+        
+        
+        #东北天转北西天
+        self.r_now1 = quat2rot_change(self.uav1.quat)
+        self.r_now2 = quat2rot_change(self.uav2.quat)
 
         # ---- nominal position init ----
         self._handle_first(self.uav1, self.nominal_pub1, self.randinit_pos_pub1)
@@ -100,21 +105,40 @@ class DualUAVController:
         force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
         force_torque_input = np.zeros(6)
         joint_state = np.concatenate([s1,force_torque_input , s2]) #这里还需要加入力估计器的值
+        
         self.state_error_pub.publish(data=joint_state.tolist())
         #pdb.set_trace()
         if self.control_name == "rl":
             #pdb.set_trace()
             # ---- RL inference (8D action) ----
+            
+            # joint_state = np.array([0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 
+            #                         -1.97235237e-03,2.86038917e-03, -2.63055857e-03, 
+            #                         9.99897139e-01,  1.42661013e-02,1.55515912e-03, 
+            #                         -1.43435843e-02,  9.96913344e-01,  7.71898613e-02,
+            #                         -4.49151519e-04, -7.72042192e-02,  9.97015199e-01, 
+            #                         -5.72795980e-04,2.69139558e-03,  2.60147592e-03,
+            #                         0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  
+            #                         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
+            #     0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 
+            #     1.61681155e-03,-1.38727055e-03, -8.81088079e-05,  
+            #     9.99072301e-01, -4.01872570e-02,1.54806173e-02, 
+            #     4.04586866e-02,  9.99025578e-01, -1.76385437e-02,
+            #     -1.47566882e-02,  1.82485038e-02,  9.99724578e-01,  
+            #     1.09473709e-03,  6.61924249e-04 , 2.15131231e-03])
+            #pdb.set_trace()
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
         else: #control_name == "pid" 做稳定悬停时使用
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
             
-
+        # print(joint_state)
+        # print(action)
         a1 = action[:4]
         a2 = action[4:]
 
         # ---- publish commands ----
         self._publish_cmd(self.cmd_pub1, a1)
+        print(a1)
         self._publish_cmd(self.cmd_pub2, a2)
 
         self._publish_offboard(self.uav1, self.offboard_pub1)
@@ -133,16 +157,16 @@ class DualUAVController:
             进入oddboard，记录当前位置为目标位置，
             当前这一部分两架无人机都是为了完成悬停
             """
-            uav.nominal_pos[0] = uav.randinit_pos.pose.position.x
-            uav.nominal_pos[1] = uav.randinit_pos.pose.position.y
-            uav.nominal_pos[2] = uav.randinit_pos.pose.position.z
+            # uav.nominal_pos[0] = uav.randinit_pos.pose.position.x
+            # uav.nominal_pos[1] = uav.randinit_pos.pose.position.y
+            # uav.nominal_pos[2] = uav.randinit_pos.pose.position.z
             uav.first = 2
             if uav.ns == "/child1":
                 self.estimate_force_torque_bias = self.estimate_force_torque
 
-        p = Point()  #这里北西天又转回了东北天，为了和之前的mavros消息对齐
-        p.x = uav.nominal_pos[0]
-        p.y = uav.nominal_pos[1]
+        p = Point()  
+        p.x = -uav.nominal_pos[1]
+        p.y = uav.nominal_pos[0]
         p.z = uav.nominal_pos[2]
         nominal_pub.publish(p) 
         # pdb.set_trace()
@@ -153,7 +177,8 @@ class DualUAVController:
 
     # 这里统一check一下，这里的nominal_pos与pos是否是同一个坐标系下的
     def _compute_state_error(self, uav, r_now):
-        err_pos = uav.pos - uav.nominal_pos 
+        
+        err_pos =  uav.pos - uav.nominal_pos # 这里出来还是nwu
         err_vel = body2worldVel(r_now, uav.vel)
         rot_err = errorRot(r_now, self.r_d)
         err_omega = errOmega(r_now, uav.omega)
@@ -170,7 +195,8 @@ class DualUAVController:
         msg.body_rate.y = action[2] * 0.7
         msg.body_rate.z = action[3] * 0.7
         
-        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.3  #这个值可以根据各子机进行调控 uav1 0.3
+        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.32  #这个值可以根据各子机进行调控 uav1 0.3
+        print(msg)
         pub.publish(msg)
 
     

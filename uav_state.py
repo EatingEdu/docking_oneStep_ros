@@ -45,8 +45,8 @@ class UAVState:
         rospy.Subscriber(f"{ns}/mavros/rc/in",
                          RCIn, self.get_rc_channel_cb, queue_size=1)
 
-        rospy.Subscriber(f"{ns}/nominal_position",
-                         Vector3Stamped, self.nominal_position_cb, queue_size=1)
+        # rospy.Subscriber(f"{ns}/nominal_position",
+        #                  Vector3Stamped, self.nominal_position_cb, queue_size=1)
 
         rospy.Subscriber(f"{ns}/nominal_euler_angles",
                          Vector3Stamped, self.nominal_euler_angles_cb, queue_size=1)
@@ -61,8 +61,8 @@ class UAVState:
         # print(f"[{self.ns}] state_pos is {self.state_pos}")
 
     # 这里的nominal_position 还需要考察是什么
-    def nominal_position_cb(self, data):
-        self.nominal_pos = np.array([data.x, data.y, data.z])
+    # def nominal_position_cb(self, data):
+    #     self.nominal_pos = np.array([data.x, data.y, data.z])
         # print(f"[{self.ns}] nominal_pos is {self.nominal_pos}")
 
     def nominal_euler_angles_cb(self, data):
@@ -98,8 +98,8 @@ class UAVState:
     """
     def local_pos_cb(self, data):  
         self.pos = np.array([
-            data.pose.position.x,
             data.pose.position.y,
+            -data.pose.position.x,
             data.pose.position.z
         ])
 
@@ -113,6 +113,7 @@ class UAVState:
             quat = -quat
         self.quat = quat
 
+        #randinit_pos 始终为北西天
         if self.first == 0 and self.start == 1:
             self.randinit_pos = deepcopy(data)
             self.randinit_pos.pose.position.x = self.pos[0]
