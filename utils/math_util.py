@@ -64,8 +64,8 @@ def errorRot(r_now, r_d):
     #pdb.set_trace()
     return R_err.reshape(-1)
 
-
-def errOmega(r_b2w, omega):
+#这里其实默认的就是直接使用了mavros出来的角速度的值
+def errOmega(r_b2w, omega): 
     #pdb.set_trace()
     err_omega = r_b2w.reshape(3,3) @ omega
     #return err_omega

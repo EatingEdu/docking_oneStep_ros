@@ -28,8 +28,8 @@ class DualUAVController:
         
         self.rt = self._init_estimate_force_torque(self.uav1)
         self.estimate_force_torque = np.zeros(6)
-        self.estimate_force_torque_bias = np.zeros(6)
-        self.force_torque_cmd = np.zeros(4)
+        self.estimate_force_torque_bias = np.zeros(6) # 这里是为了减去初始噪声数据
+        self.force_torque_cmd = np.zeros(4) #这是记录控制指令的外力和外力矩
 
         # ---- publishers ----
         # self.cmd_pub1 = rospy.Publisher("/rl_cmd1", AttitudeTarget, queue_size=1) # /mavros/setpoint_raw/attitude
@@ -62,8 +62,8 @@ class DualUAVController:
     # ================= control loop ================= #
 
     def control_loop(self, event):
-        if not (self.uav1.ready() and self.uav2.ready()):
-            return
+        # if not (self.uav1.ready() and self.uav2.ready()):
+        #     return
 
         # ---- rotation ----
         #pdb.set_trace()
@@ -102,7 +102,10 @@ class DualUAVController:
          
         s2 = self._compute_state_error(self.uav2, self.r_now2)  #这里需要注意，现在是都只把子机当前的位置作为了悬停位置，不做进一步的对接操作，需要注意
         #force_torque = np.zeros(6)\
-        force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
+        if np.any(self.estimate_force_torque_bias):
+            force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
+        else:
+            force_torque_input = np.zeros(6)
         force_torque_input = np.zeros(6)
         joint_state = np.concatenate([s1,force_torque_input , s2]) #这里还需要加入力估计器的值
         
@@ -126,8 +129,9 @@ class DualUAVController:
             #     4.04586866e-02,  9.99025578e-01, -1.76385437e-02,
             #     -1.47566882e-02,  1.82485038e-02,  9.99724578e-01,  
             #     1.09473709e-03,  6.61924249e-04 , 2.15131231e-03])
-            #pdb.set_trace()
-            action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
+            # #pdb.set_trace()
+            
+            action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state,self.err_vel, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
         else: #control_name == "pid" 做稳定悬停时使用
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
             
@@ -138,7 +142,7 @@ class DualUAVController:
 
         # ---- publish commands ----
         self._publish_cmd(self.cmd_pub1, a1)
-        print(a1)
+        #print(a1)
         self._publish_cmd(self.cmd_pub2, a2)
 
         self._publish_offboard(self.uav1, self.offboard_pub1)
@@ -161,11 +165,12 @@ class DualUAVController:
             # uav.nominal_pos[1] = uav.randinit_pos.pose.position.y
             # uav.nominal_pos[2] = uav.randinit_pos.pose.position.z
             uav.first = 2
-            if uav.ns == "/child1":
+            if uav.ns == "/child1":  #这里力估计器只记录无人机的外力估计值
                 self.estimate_force_torque_bias = self.estimate_force_torque
 
+        #北西天-》东北天 与mavros数据对应起来
         p = Point()  
-        p.x = -uav.nominal_pos[1]
+        p.x = -uav.nominal_pos[1] 
         p.y = uav.nominal_pos[0]
         p.z = uav.nominal_pos[2]
         nominal_pub.publish(p) 
@@ -178,35 +183,35 @@ class DualUAVController:
     # 这里统一check一下，这里的nominal_pos与pos是否是同一个坐标系下的
     def _compute_state_error(self, uav, r_now):
         
-        err_pos =  uav.pos - uav.nominal_pos # 这里出来还是nwu
-        err_vel = body2worldVel(r_now, uav.vel)
+        err_pos = uav.pos - uav.nominal_pos # 这里出来还是nwu
+        self.err_vel = body2worldVel(r_now, uav.vel)
         rot_err = errorRot(r_now, self.r_d)
         err_omega = errOmega(r_now, uav.omega)
         return np.concatenate([
             err_pos,
-            err_vel,
+            self.err_vel,
             rot_err,
             err_omega   # 这里的角速度值可以适当做出调整
         ])
 
     def _publish_cmd(self, pub, action):
         msg = AttitudeTarget()
-        msg.body_rate.x = action[1] * 0.7
-        msg.body_rate.y = action[2] * 0.7
-        msg.body_rate.z = action[3] * 0.7
+        msg.body_rate.x = action[1]  
+        msg.body_rate.y = action[2]  
+        msg.body_rate.z = action[3] 
         
         msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.32  #这个值可以根据各子机进行调控 uav1 0.3
-        print(msg)
+        #print(msg)
         pub.publish(msg)
 
     
     def _init_estimate_force_torque(self, uav):
         w = 7
         epsilon  = 1
-        inertia = np.array([0.0685339,0.08342368,0.1501083])
+        inertia = np.array([0.0685339,0.08342368,0.1501083]) # 转动惯量的值确认
         K1,K1_K2 = getK(w,epsilon)
         I_b = inertia
-        v = uav.vel
+        v = np.zeros(3)#uav.vel # 这里的速度也不是世界的，是机体的还要转化才可以
         w_vel = uav.omega
         dt = 0.01
         rt = RT(v, w_vel , I_b = inertia * np.eye(3), u = np.array([0,0,0]), 

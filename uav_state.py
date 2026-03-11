@@ -93,7 +93,7 @@ class UAVState:
 
     """
     #这里是之前的代码，东北天->北西天，建立坐标系的时候需要注意一下 0228
-    最新一版整个坐标轴的建立靠动捕来决定，按照北西天的方式来建立整个坐标系，不需要考虑坐标的转换
+    最新一版整个坐标轴的建立靠动捕来决定，按照北西天的方式来建立整个坐标系的话，不需要考虑坐标的转换
     
     """
     def local_pos_cb(self, data):  
@@ -125,7 +125,7 @@ class UAVState:
             self.randinit_pos.pose.position.x = self.pos[0]
             self.randinit_pos.pose.position.y = self.pos[1]
             self.randinit_pos.pose.position.z = self.pos[2]
-            self.nominal_pos[:] = self.pos
+            #self.nominal_pos[:] = self.pos
 
     def mav_vel_receive_cb(self, data):
         self.mav_vel_receive = data

@@ -13,6 +13,7 @@ sys.path.append("../")
 
 from dynamics import *
 from model_predict_pid import *
+from utils.action_deal import *
 
 # ===============================
 # 1️⃣ 安全加载 actor npz
@@ -50,14 +51,14 @@ class Actor:
     """
 
     def __init__(self, params):
-        self.W1 = params["MLP_0"]["Dense_0"]["kernel"]   # (obs_dim, 512)
-        self.b1 = params["MLP_0"]["Dense_0"]["bias"]
+        self.W1 = params["MLP_0_Dense_0_kernel"]
+        self.b1 = params["MLP_0_Dense_0_bias"]
 
-        self.W2 = params["MLP_0"]["Dense_1"]["kernel"]   # (512, 256)
-        self.b2 = params["MLP_0"]["Dense_1"]["bias"]
+        self.W2 = params["MLP_0_Dense_1_kernel"]
+        self.b2 = params["MLP_0_Dense_1_bias"]
 
-        self.Wm = params["OutputDenseMean"]["kernel"]    # (256, act_dim)
-        self.bm = params["OutputDenseMean"]["bias"]
+        self.Wm = params["OutputDenseMean_kernel"]
+        self.bm = params["OutputDenseMean_bias"]
 
     @staticmethod
     def relu(x):
@@ -74,7 +75,7 @@ class Actor:
         x = x @ self.W2 + self.b2
         x = self.relu(x)   # activate_final=True
 
-        mean = x @ self.Wm + self.bm
+        mean = np.tanh(x @ self.Wm + self.bm)
         return mean
     
 
@@ -103,21 +104,32 @@ npz_path = "./model/Miql_estimateF_MT_data4+6+7_envTTF/20750/actor_arm.npz" #这
 npz_path = "./model/0225_model0212Sim60k_data4_9_14_seg8_2_off08_sr08__envRanEFD__29125_output_arm_params/actor_arm.npz"
 npz_path = "./model/0225_model0212Sim60k_data4_9_14_seg8_2_off08_sr08__envRanEFDALLStep__48750_output_arm_params/actor_arm.npz"
 npz_path = "./model/modeldata8+9+10_envTTTrandomM41k__data9+11+12_envTTTrandomM15_offRatio05_sR05__13625_output_arm_params/actor_arm.npz"
+
+# model seed
 npz_path = "./model/data16_of05_sr02__envNoEFD_att15__27625_output_arm_params/actor_arm.npz"
 # npz_path = "./model/data16_of06_sr08__envNoEFD_att15__47000_output_arm_params/actor_arm.npz"
+npz_path = "/mnt/workspace_fyt/gitdocking_rl/docking_oneStep_ros/model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_params/actor_arm.npz"
+
 
 predictor = ModelPredict(npz_path)
-dynamics_uav = Dynamics(thrust_to_weight=1/0.5)  
+dynamics_uav = Dynamics(thrust_to_weight=1/0.5)  # 这个推重比要根据实际调整一下
 pid_control_uav  = NonlinearPositionController(dynamics_uav)
+filter = ActionSpikeFilter(dim=8)
 dt = 0.01
 
-def modelPredict(uav, state_error, rot, rt):
+
+def modelPredict(uav, state_error, vel, rot, rt):
     #pdb.set_trace()
     global dt
-    dynamics_uav.update_state(uav.pos, uav.vel, uav.omega, rot) #这里主要时为了做外力估计
+    # 注意这里更新的vel可不是世界vel，是机体vel，这里有问题
+    # 可以尝试使用
+    dynamics_uav.update_state(uav.pos, vel, uav.omega, rot) #这里主要时为了做外力估计
     action = predictor.eval_action(state_error)
+    pdb.set_trace()
+    action = filter.filter(action)
+    
     force_torque = pid_control_uav.step_force_torque(dynamics=dynamics_uav1, goal=uav.nominal_pos, dt=dt, action=action[:4])
-    print(f"rl cmd force_torque is {force_torque}")
+    #print(f"rl cmd force_torque is {force_torque}")
     estimate_force_torque = get_estimate_force_torque(rt, uav, rot, force_torque)
     force_torque_cmd = np.array([force_torque[0], force_torque[1][0], force_torque[1][1], force_torque[1][2]])
     return action, estimate_force_torque , force_torque_cmd
