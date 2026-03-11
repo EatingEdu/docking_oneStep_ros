@@ -108,7 +108,7 @@ npz_path = "./model/modeldata8+9+10_envTTTrandomM41k__data9+11+12_envTTTrandomM1
 # model seed
 npz_path = "./model/data16_of05_sr02__envNoEFD_att15__27625_output_arm_params/actor_arm.npz"
 # npz_path = "./model/data16_of06_sr08__envNoEFD_att15__47000_output_arm_params/actor_arm.npz"
-npz_path = "/mnt/workspace_fyt/gitdocking_rl/docking_oneStep_ros/model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_params/actor_arm.npz"
+npz_path = "./model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_params/actor_arm.npz"
 
 
 predictor = ModelPredict(npz_path)
@@ -125,7 +125,7 @@ def modelPredict(uav, state_error, vel, rot, rt):
     # 可以尝试使用
     dynamics_uav.update_state(uav.pos, vel, uav.omega, rot) #这里主要时为了做外力估计
     action = predictor.eval_action(state_error)
-    pdb.set_trace()
+    #pdb.set_trace()
     action = filter.filter(action)
     
     force_torque = pid_control_uav.step_force_torque(dynamics=dynamics_uav1, goal=uav.nominal_pos, dt=dt, action=action[:4])

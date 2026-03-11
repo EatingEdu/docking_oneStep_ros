@@ -42,8 +42,8 @@ class DualUAVController:
         
         
 
-        self.nominal_pub1 = rospy.Publisher("/child1/nominal_pos", Point, queue_size=1)
-        self.nominal_pub2 = rospy.Publisher("/child2/nominal_pos", Point, queue_size=1)
+        self.nominal_pub1 = rospy.Publisher("/child1/nominal_pos_enu", Point, queue_size=1)
+        self.nominal_pub2 = rospy.Publisher("/child2/nominal_pos_enu", Point, queue_size=1)
 
         self.randinit_pos_pub1 = rospy.Publisher("/child1/randinit_pos", PoseStamped, queue_size=1)
         self.randinit_pos_pub2 = rospy.Publisher("/child2/randinit_pos", PoseStamped, queue_size=1)
@@ -130,13 +130,13 @@ class DualUAVController:
             #     -1.47566882e-02,  1.82485038e-02,  9.99724578e-01,  
             #     1.09473709e-03,  6.61924249e-04 , 2.15131231e-03])
             # #pdb.set_trace()
-            
+            #print(f"joint_state is {joint_state}")
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state,self.err_vel, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
         else: #control_name == "pid" 做稳定悬停时使用
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
             
         # print(joint_state)
-        # print(action)
+        print(action)
         a1 = action[:4]
         a2 = action[4:]
 
@@ -182,8 +182,11 @@ class DualUAVController:
 
     # 这里统一check一下，这里的nominal_pos与pos是否是同一个坐标系下的
     def _compute_state_error(self, uav, r_now):
-        
+        #pdb.set_trace()
         err_pos = uav.pos - uav.nominal_pos # 这里出来还是nwu
+        # print(f"uav.pos is {uav.pos}")
+        # print(f"uav.nominal_pos is {uav.nominal_pos}")
+        # print(f"err_pos is {err_pos}")
         self.err_vel = body2worldVel(r_now, uav.vel)
         rot_err = errorRot(r_now, self.r_d)
         err_omega = errOmega(r_now, uav.omega)
