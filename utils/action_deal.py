@@ -9,7 +9,9 @@ class ActionSpikeFilter:
         alpha=0.05,
         spike_k=3.0,
         smooth=0.2,
-        min_ratio=0.1
+        min_ratio=0.1,
+        max_range=0.1,
+        max_step=0.02
     ):
 
         self.dim = dim
@@ -18,10 +20,17 @@ class ActionSpikeFilter:
         self.smooth = smooth
         self.min_ratio = min_ratio
 
+        # 新增参数
+        self.max_range = max_range
+        self.max_step = max_step
+
         self.prev_action = None
         self.prev_output = None
         self.mean_delta = np.zeros(dim)
 
+    # ----------------------------
+    # 自适应阈值
+    # ----------------------------
     def compute_threshold(self, delta):
 
         self.mean_delta = (
@@ -31,6 +40,10 @@ class ActionSpikeFilter:
 
         return self.spike_k * self.mean_delta
 
+
+    # ----------------------------
+    # 尖刺削弱
+    # ----------------------------
     def halve_spike(self, action, prev_action, threshold):
 
         result = action.copy()
@@ -52,6 +65,10 @@ class ActionSpikeFilter:
 
         return result
 
+
+    # ----------------------------
+    # EMA平滑
+    # ----------------------------
     def ema_smooth(self, action):
 
         if self.prev_output is None:
@@ -67,10 +84,11 @@ class ActionSpikeFilter:
 
         return out
 
+
+    # ----------------------------
+    # 丢弃非法值
+    # ----------------------------
     def remove_invalid(self, action):
-        """
-        如果某个维度 == 1，则丢弃该值
-        """
 
         action = action.copy()
 
@@ -80,9 +98,37 @@ class ActionSpikeFilter:
 
         return action
 
+
+    # ----------------------------
+    # 变化率限制
+    # ----------------------------
+    def limit_rate(self, action):
+
+        delta = action - self.prev_action
+        delta = np.clip(delta, -self.max_step, self.max_step)
+
+        return self.prev_action + delta
+
+
+    # ----------------------------
+    # 自适应缩放
+    # ----------------------------
+    def scale_to_range(self, action):
+
+        max_val = np.max(np.abs(action))
+
+        if max_val > self.max_range:
+            action = action * (self.max_range / max_val)
+
+        return action
+
+
+    # ----------------------------
+    # 主过滤函数
+    # ----------------------------
     def filter(self, action):
 
-        action = np.array(action)
+        action = np.array(action, dtype=np.float32)
 
         if self.prev_action is None:
             self.prev_action = action
@@ -104,11 +150,25 @@ class ActionSpikeFilter:
         # 5 EMA平滑
         action = self.ema_smooth(action)
 
+        # 6 限制变化率
+        action = self.limit_rate(action)
+
+        # 7 自适应缩放
+        action = self.scale_to_range(action)
+
+        # 8 最终安全限幅
+        action = np.clip(action, -self.max_range, self.max_range)
+
         self.prev_action = action
 
         return action
-    
-if __name__ == "__main__":    
+
+
+# ----------------------------
+# 示例
+# ----------------------------
+if __name__ == "__main__":
+
     filter = ActionSpikeFilter(dim=8)
 
     while True:

@@ -103,8 +103,8 @@ npz_path = "./model/0225_model0212Sim60k_data4_9_14_seg8_2_off08_sr08__envRanEFD
 npz_path = "./model/0225_model0212Sim60k_data4_9_14_seg8_2_off08_sr08__envRanEFDALLStep__48750_output_arm_params/actor_arm.npz"
 npz_path = "./model/modeldata8+9+10_envTTTrandomM41k__data9+11+12_envTTTrandomM15_offRatio05_sR05__13625_output_arm_params/actor_arm.npz"
 npz_path = "./model/data16_of05_sr02__envNoEFD_att15__27625_output_arm_params/actor_arm.npz"
-#npz_path = "./model/data16_of06_sr08__envNoEFD_att15__47000_output_arm_params/actor_arm.npz"
-npz_path = "./model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_params/actor_arm.npz"
+npz_path = "./model/data16_of06_sr08__envNoEFD_att15__47000_output_arm_params/actor_arm.npz"
+#npz_path = "./model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_params/actor_arm.npz"
 
 predictor = ModelPredict(npz_path)
 dynamics_uav = Dynamics(thrust_to_weight=1/0.5)  

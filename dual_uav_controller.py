@@ -54,6 +54,8 @@ class DualUAVController:
         self.state_error_pub = rospy.Publisher("/dual/state_error", Float64MultiArray, queue_size=1)
         self.estimate_force_torque_pub = rospy.Publisher("/estimate_force_torque", Float64MultiArray, queue_size=1)
         self.estimate_force_torque_bias_pub = rospy.Publisher("/estimate_force_torque_bias", Float64MultiArray, queue_size=1)
+        self.action_pub = rospy.Publisher("/dual/action", Float64MultiArray, queue_size=1)
+
         
         self.force_torque_cmd_pub = rospy.Publisher("/force_torque_cmd", Float64MultiArray, queue_size=1)
 
@@ -116,6 +118,9 @@ class DualUAVController:
         #print(joint_state)
         print(action)
 
+        
+        self._publish_estimate_force_torque(action, self.action_pub)
+        
         # ---- publish commands ----
         self._publish_cmd(self.cmd_pub1, a1)
         self._publish_cmd(self.cmd_pub2, a2)
@@ -170,9 +175,9 @@ class DualUAVController:
 
     def _publish_cmd(self, pub, action):
         msg = AttitudeTarget()
-        msg.body_rate.x = 0. #action[1] #* 0.7
-        msg.body_rate.y = 0. #action[2] #* 0.7
-        msg.body_rate.z = 0. #action[3] #* 0.7
+        msg.body_rate.x = action[1] #* 0.7
+        msg.body_rate.y = action[2] #* 0.7
+        msg.body_rate.z = action[3] #* 0.7
         
         msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.3  #这个值可以根据各子机进行调控 uav1 0.3
         pub.publish(msg)
