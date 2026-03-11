@@ -118,14 +118,9 @@ class NonlinearPositionController(object):
         self.omega_errlast = None
 
     def stepThrustOmega50hz(self, pos,vel, rot, omega, goal, mass=1.0):
-        self.kp_p = np.array([2.5, 2.5, 18.]) # [1.2 
-        self.kd_p = np.array([4.2, 4.2, 9.5]) #np.array([1.2, 3., 9.5])[5.0]
-        self.ki_p = np.array([0.008, 0.0008, 0.001])
-        
-        #20231028
-        # self.kp_p = np.array([0.75, 3.8, 18.])
-        # self.kd_p = np.array([0.95, 3., 9.5])
-        # self.ki_p = np.array([0.001, 0.001, 0.06])
+        self.kp_p = np.array([0.75, 3.8, 18.])
+        self.kd_p = np.array([0.95, 3., 9.5])
+        self.ki_p = np.array([0.001, 0.001, 0.06])
         
         # self.kp_p = np.array([2.7, 4.0, 18.])
         # self.kd_p = np.array([1.5, 3., 9.5]) 
@@ -191,6 +186,49 @@ class NonlinearPositionController(object):
         new_action = np.array(action)
         return new_action, _
     
+    def reset(self,):
+        self.action = None
+
+        #self.kp_p, self.kd_p = 4.5, 3.5
+        #self.kp_p, self.kd_p = 4.5, 3.5
+        self.kp_p = np.array([4.5, 3.5, 6.4])
+        self.kd_p = np.array([4.5, 3.5, 2])
+        self.ki_p = np.zeros(3)
+
+        self.kp_a, self.kd_a = 200.0, 70.0 #50.
+
+        #contact_froce 
+        self.ki_force = 0.1#0.8
+        self.e_force = np.zeros(3)
+
+        self.rot_des = np.eye(3)
+        # self.rot_des = np.array([[-1.,0.,0.],
+        #                         [0.,-1.,0.],
+        #                         [0.,0.,1]])
+
+        #self.step_func = self.step
+
+        # pidThrustOmega
+        self.angle = np.zeros(3)
+        self.last_angle = np.zeros(3)
+        self.item_omega = np.zeros(3)
+        circle_per_sec = 2* np.pi
+        self.angle_p_x = 5.0
+        self.angle_p_y = 5.0
+        self.angle_p_z = 0.0075#0.008#0.015
+        self.kpa = np.array([0.000035,8,0.0075]) #  np.array([0.000035,8,0.0075])
+        #self.kda = np.array([0.,8,0.]) # np.array([0.,8,0.])
+        self.angle_i = np.zeros(3)
+        self.e_pi = np.zeros(3)
+        # self.kpa = np.array([20,20,20])
+        # self.kda = np.array([7.,7,7])
+
+        max_rp =  0.1 * circle_per_sec
+        max_yaw =  0.1 * circle_per_sec
+        self.min_omega = np.array([ -max_rp, -max_rp, -max_yaw])
+        self.max_omega = np.array([  max_rp,  max_rp,  max_yaw])
+        
+        
     def step_force_torque(self,  dynamics, goal, dt, action=None, flag="body",observation=None):
         # kp = random.randint(9,11) # could be more aggressive
         #pdb.set_trace()
@@ -261,48 +299,6 @@ class NonlinearPositionController(object):
         force, torque = dynamics.step(thrusts, dt, flag)
         return force, torque
     
-      
-    def reset(self,):
-        self.action = None
-
-        #self.kp_p, self.kd_p = 4.5, 3.5
-        #self.kp_p, self.kd_p = 4.5, 3.5
-        self.kp_p = np.array([4.5, 3.5, 6.4])
-        self.kd_p = np.array([4.5, 3.5, 2])
-        self.ki_p = np.zeros(3)
-
-        self.kp_a, self.kd_a = 200.0, 70.0 #50.
-
-        #contact_froce 
-        self.ki_force = 0.1#0.8
-        self.e_force = np.zeros(3)
-
-        self.rot_des = np.eye(3)
-        # self.rot_des = np.array([[-1.,0.,0.],
-        #                         [0.,-1.,0.],
-        #                         [0.,0.,1]])
-
-        #self.step_func = self.step
-
-        # pidThrustOmega
-        self.angle = np.zeros(3)
-        self.last_angle = np.zeros(3)
-        self.item_omega = np.zeros(3)
-        circle_per_sec = 2* np.pi
-        self.angle_p_x = 5.0
-        self.angle_p_y = 5.0
-        self.angle_p_z = 0.0075#0.008#0.015
-        self.kpa = np.array([0.000035,8,0.0075]) #  np.array([0.000035,8,0.0075])
-        #self.kda = np.array([0.,8,0.]) # np.array([0.,8,0.])
-        self.angle_i = np.zeros(3)
-        self.e_pi = np.zeros(3)
-        # self.kpa = np.array([20,20,20])
-        # self.kda = np.array([7.,7,7])
-
-        max_rp =  0.1 * circle_per_sec
-        max_yaw =  0.1 * circle_per_sec
-        self.min_omega = np.array([ -max_rp, -max_rp, -max_yaw])
-        self.max_omega = np.array([  max_rp,  max_rp,  max_yaw])
 
 
 # global dynamics_uav1,   dynamics_uav2,
@@ -313,12 +309,19 @@ dynamics_uav2 = Dynamics(thrust_to_weight=1/0.5)
 
 pid_control_uav1 = NonlinearPositionController(dynamics_uav1)
 pid_control_uav2 = NonlinearPositionController(dynamics_uav2)
-# global first, rt
-# first = True
+global first1, first2
+first1 = True
+first2 = True
 #rt = init_estimate_force_torque(mass=1.6)
 dt = 0.01
-def modelPredict_pid(uav1, uav2, rot1, rot2, rt):
-    #global first
+def modelPredict_pid(uav1, uav2, rot1, rot2, rt, uav1_init_flag, uav2_init_flag):
+    global first1,first2
+    if uav1_init_flag and first1:
+        pid_control_uav1.reset()
+        first1 = False
+    if uav2_init_flag and first2:
+        pid_control_uav2.reset()
+        first2 = False
     vel1 = rot1 @ uav1.vel 
     vel2 = rot2 @ uav2.vel 
     dynamics_uav1.update_state(uav1.pos, vel1, uav1.omega, rot1)

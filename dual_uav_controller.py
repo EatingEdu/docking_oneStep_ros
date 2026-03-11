@@ -42,8 +42,8 @@ class DualUAVController:
         
         
 
-        self.nominal_pub1 = rospy.Publisher("/child1/nominal_pos", Point, queue_size=1)
-        self.nominal_pub2 = rospy.Publisher("/child2/nominal_pos", Point, queue_size=1)
+        self.nominal_pub1 = rospy.Publisher("/child1/nominal_pos_enu", Point, queue_size=1)
+        self.nominal_pub2 = rospy.Publisher("/child2/nominal_pos_enu", Point, queue_size=1)
 
         self.randinit_pos_pub1 = rospy.Publisher("/child1/randinit_pos", PoseStamped, queue_size=1)
         self.randinit_pos_pub2 = rospy.Publisher("/child2/randinit_pos", PoseStamped, queue_size=1)
@@ -107,11 +107,14 @@ class DualUAVController:
             # ---- RL inference (8D action) ----
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
         else: #control_name == "pid" 做稳定悬停时使用
-            action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
+            action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt , self.uav1.first, self.uav2.first)
             
 
         a1 = action[:4]
         a2 = action[4:]
+        #pdb.set_trace()
+        #print(joint_state)
+        print(action)
 
         # ---- publish commands ----
         self._publish_cmd(self.cmd_pub1, a1)
@@ -127,7 +130,7 @@ class DualUAVController:
     # ================= helper funcs ================= #
 
     def _handle_first(self, uav, nominal_pub, first_pub):
-        if uav.first == 1: 
+        if uav.first == 0 : 
             #pdb.set_trace()
             """
             进入oddboard，记录当前位置为目标位置，
@@ -136,6 +139,7 @@ class DualUAVController:
             uav.nominal_pos[0] = uav.randinit_pos.pose.position.x
             uav.nominal_pos[1] = uav.randinit_pos.pose.position.y
             uav.nominal_pos[2] = uav.randinit_pos.pose.position.z
+        elif uav.first == 1:
             uav.first = 2
             if uav.ns == "/child1":
                 self.estimate_force_torque_bias = self.estimate_force_torque
@@ -166,9 +170,9 @@ class DualUAVController:
 
     def _publish_cmd(self, pub, action):
         msg = AttitudeTarget()
-        msg.body_rate.x = action[1] * 0.7
-        msg.body_rate.y = action[2] * 0.7
-        msg.body_rate.z = action[3] * 0.7
+        msg.body_rate.x = 0. #action[1] #* 0.7
+        msg.body_rate.y = 0. #action[2] #* 0.7
+        msg.body_rate.z = 0. #action[3] #* 0.7
         
         msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.3  #这个值可以根据各子机进行调控 uav1 0.3
         pub.publish(msg)
