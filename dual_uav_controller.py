@@ -8,6 +8,7 @@ import sys
 sys.path.append("../")
 from model_predict_forArm import modelPredict
 from model_predict_pid import *
+from test.model_predict_ppo import *
 from uav_state import UAVState
 from utils.math_util import *
 
@@ -108,6 +109,9 @@ class DualUAVController:
             #pdb.set_trace()
             # ---- RL inference (8D action) ----
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
+        elif self.control_name == "ppo":
+            action = modelPredict(joint_state[:18])   # shape (8,)
+            action = np.concatenate([action,np.zeros(4)])
         else: #control_name == "pid" 做稳定悬停时使用
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt , self.uav1.first, self.uav2.first)
             
