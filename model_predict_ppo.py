@@ -342,7 +342,7 @@ obs_shape_dict = {
     'obs': (1, 18)
 }
 
-pre = "/home/fyt/project/iql_learn/implicit_q_learning/Airdocking/Airdocking_ros/docking2/"
+pre = "/mnt/workspace_fyt/fyt/docking_twoStep/real_ros/docking2/airdocking/src/"
 policy = CompletePolicy(
     actor=Actor_net,
     obs_shape_dict=obs_shape_dict,

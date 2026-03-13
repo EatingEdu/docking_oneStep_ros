@@ -106,6 +106,11 @@ npz_path = "./model/data16_of05_sr02__envNoEFD_att15__27625_output_arm_params/ac
 npz_path = "./model/data16_of06_sr08__envNoEFD_att15__47000_output_arm_params/actor_arm.npz"
 #npz_path = "./model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_params/actor_arm.npz"
 
+#0311 model
+npz_path = "./model/0311_msiql_data16_ofr05sr05_env7__11250_output_arm_params/actor_arm.npz"  #这个更加激进
+#npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__10625_output_arm_params/actor_arm.npz"  # 这个感觉还稍微保守一些
+
+
 predictor = ModelPredict(npz_path)
 dynamics_uav = Dynamics(thrust_to_weight=1/0.5)  
 pid_control_uav  = NonlinearPositionController(dynamics_uav)
@@ -117,7 +122,7 @@ def modelPredict(uav, state_error, rot, rt):
     global dt
     dynamics_uav.update_state(uav.pos, uav.vel, uav.omega, rot) #这里主要时为了做外力估计
     action = predictor.eval_action(state_error)
-    action = filter.filter(action)
+    #action = filter.filter(action)
     
     force_torque = pid_control_uav.step_force_torque(dynamics=dynamics_uav1, goal=uav.nominal_pos, dt=dt, action=action[:4])
     #print(f"rl cmd force_torque is {force_torque}")

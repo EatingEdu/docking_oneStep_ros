@@ -8,7 +8,7 @@ import sys
 sys.path.append("../")
 from model_predict_forArm import modelPredict
 from model_predict_pid import *
-from test.model_predict_ppo import *
+#from model_predict_ppo import *
 from uav_state import UAVState
 from utils.math_util import *
 
@@ -105,6 +105,9 @@ class DualUAVController:
         joint_state = np.concatenate([s1,force_torque_input , s2]) #这里还需要加入力估计器的值
         self.state_error_pub.publish(data=joint_state.tolist())
         #pdb.set_trace()
+        #joint_state = np.concatenate([np.zeros(6), np.eye(3).flatten(),np.zeros(15),np.eye(3).flatten(),np.zeros(3)])
+        print(joint_state)
+        #joint_state = 
         if self.control_name == "rl":
             #pdb.set_trace()
             # ---- RL inference (8D action) ----
