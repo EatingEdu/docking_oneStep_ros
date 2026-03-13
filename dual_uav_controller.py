@@ -11,7 +11,7 @@ from model_predict_pid import *
 
 from uav_state import UAVState
 from utils.math_util import *
-from model_predict_ppo import *
+#from model_predict_ppo import *
 
 import pdb
 
@@ -21,7 +21,7 @@ class DualUAVController:
         self.uav1 = uav1
         self.uav2 = uav2
 
-        self.control_name = "rl"  # or "pid"
+        self.control_name = "rl"  # or "pid" rl ppo
 
         # ---- rotation matrices ----
         self.r_now1 = np.zeros(9)
@@ -109,30 +109,31 @@ class DualUAVController:
         else:
             force_torque_input = np.zeros(6)
         force_torque_input = np.zeros(6)
+        # force_torque_input = np.array([ -1.17029937e-03, -4.12333943e-02, -4.74429736e-03,  
+        #                                5.27418451e-03,  7.28572858e-03,  1.52184721e-03,])
         joint_state = np.concatenate([s1,force_torque_input , s2]) #这里还需要加入力估计器的值
         
         self.state_error_pub.publish(data=joint_state.tolist())
         #pdb.set_trace()
+        #以下是实机初始化下的数据  看起来这里可以尝试把之前的目标位置，uav1在对接轴上多减去0.4 ， uav2多加上0.4来抵抗他们的相向运动
+        # joint_state = np.array([ 1.36143342e-03, -0.4,  3.26842070e-04, 
+        #                    2.79980521e-03, 2.55478715e-03, -1.28504450e-03,  
+        #                    9.99915666e-01,  1.25961873e-02,  -3.17836034e-03, 
+        #                    -1.22950641e-02,  9.96592389e-01,  8.15631495e-02,
+        #                     4.19491858e-03, -8.15171883e-02,  9.96663108e-01, 
+        #                     -3.55130062e-04, -1.02324295e-03, -2.31230259e-03,  
+        #                     -1.17029937e-03, -4.12333943e-02, -4.74429736e-03,  
+        #                     5.27418451e-03,  7.28572858e-03,  1.52184721e-03,
+        #                     0.00000000e+00,  0.4,  0.00000000e+00,  
+        #                     7.88867834e-03, 5.48097601e-03,  3.78768077e-03,  
+        #                     9.99190875e-01, -3.89574607e-02, 9.99667479e-03,  
+        #                     3.92111155e-02,  9.98877523e-01, -2.65745258e-02,
+        #                     -8.95017790e-03,  2.69450041e-02,  9.99596849e-01, 
+        #                     3.36270314e-04, 3.35189723e-03, -3.17849743e-04])
+        joint_state[1] = joint_state[1] - 0.4
         if self.control_name == "rl":
             #pdb.set_trace()
             # ---- RL inference (8D action) ----
-            
-            # joint_state = np.array([0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 
-            #                         -1.97235237e-03,2.86038917e-03, -2.63055857e-03, 
-            #                         9.99897139e-01,  1.42661013e-02,1.55515912e-03, 
-            #                         -1.43435843e-02,  9.96913344e-01,  7.71898613e-02,
-            #                         -4.49151519e-04, -7.72042192e-02,  9.97015199e-01, 
-            #                         -5.72795980e-04,2.69139558e-03,  2.60147592e-03,
-            #                         0.00000000e+00,  0.00000000e+00, 0.00000000e+00,  
-            #                         0.00000000e+00,  0.00000000e+00,  0.00000000e+00,
-            #     0.00000000e+00,  0.00000000e+00,  0.00000000e+00, 
-            #     1.61681155e-03,-1.38727055e-03, -8.81088079e-05,  
-            #     9.99072301e-01, -4.01872570e-02,1.54806173e-02, 
-            #     4.04586866e-02,  9.99025578e-01, -1.76385437e-02,
-            #     -1.47566882e-02,  1.82485038e-02,  9.99724578e-01,  
-            #     1.09473709e-03,  6.61924249e-04 , 2.15131231e-03])
-            # #pdb.set_trace()
-            #print(f"joint_state is {joint_state}")
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state,self.err_vel, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
         elif self.control_name == "ppo":
             action = modelPredictPPO(joint_state[:18])   # shape (8,)
@@ -140,7 +141,7 @@ class DualUAVController:
         else: #control_name == "pid" 做稳定悬停时使用
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
             
-        # print(joint_state)
+        print(joint_state)
         print(action)
         a1 = action[:4]
         a2 = action[4:]
