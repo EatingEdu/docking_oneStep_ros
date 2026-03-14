@@ -342,7 +342,7 @@ obs_shape_dict = {
     'obs': (1, 18)
 }
 
-pre = "/mnt/workspace_fyt/fyt/docking_twoStep/real_ros/docking2/airdocking/src/"
+pre = "/home/jetson/airdocking/src/"
 policy = CompletePolicy(
     actor=Actor_net,
     obs_shape_dict=obs_shape_dict,
@@ -354,7 +354,7 @@ policy = CompletePolicy(
 )
 
 
-def modelPredict(state_error):
+def modelPredict_ppo(state_error):
     #pdb.set_trace()
     state = {
         'obs': state_error.reshape(1,18)
