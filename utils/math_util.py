@@ -36,13 +36,14 @@ def quat2rot_change_nwu(quat):
 
 # 这里只是单纯做了一个机体到世界系下的转换
 def body2worldVel(r_now, vel):
-    # local_vel = np.zeros(3)
-    # x, y, z = vel
+    #print(f"vel is {vel}")
+    local_vel = np.zeros(3)
+    x, y, z = vel
     R = r_now.reshape(3,3)
-    # local_vel[0] = r_now[0]*x + r_now[1]*y + r_now[2]*z
-    # local_vel[1] = r_now[3]*x + r_now[4]*y + r_now[5]*z
-    # local_vel[2] = r_now[6]*x + r_now[7]*y + r_now[8]*z
-    return R @ vel
+    local_vel[0] = r_now[0]*x + r_now[1]*y + r_now[2]*z
+    local_vel[1] = r_now[3]*x + r_now[4]*y + r_now[5]*z
+    local_vel[2] = r_now[6]*x + r_now[7]*y + r_now[8]*z
+    return local_vel
     #return vel
 
 
@@ -62,7 +63,7 @@ def errorRot(r_now, r_d):
     R_d = r_d.reshape(3,3)
     R_err = R_d.T @ R_now
     #pdb.set_trace()
-    return R_err.reshape(-1)
+    return r_now.reshape(-1)
 
 #这里其实默认的就是直接使用了mavros出来的角速度的值
 def errOmega(r_b2w, omega): 

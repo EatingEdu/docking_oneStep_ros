@@ -113,7 +113,9 @@ npz_path = "./model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_pa
 #0311 model
 npz_path = "./model/0311_msiql_data16_ofr05sr05_env7__11250_output_arm_params/actor_arm.npz"
 npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__10625_output_arm_params/actor_arm.npz"  # 这个感觉还稍微保守一些
+npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__14625_output_arm_params/actor_arm.npz"
 
+print(npz_path)
 predictor = ModelPredict(npz_path)
 dynamics_uav = Dynamics(thrust_to_weight=1/0.5)  # 这个推重比要根据实际调整一下
 pid_control_uav  = NonlinearPositionController(dynamics_uav)

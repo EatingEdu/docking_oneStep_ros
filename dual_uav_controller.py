@@ -11,7 +11,7 @@ from model_predict_pid import *
 
 from uav_state import UAVState
 from utils.math_util import *
-#from model_predict_ppo import *
+from model_predict_ppo import *
 
 import pdb
 
@@ -21,7 +21,7 @@ class DualUAVController:
         self.uav1 = uav1
         self.uav2 = uav2
 
-        self.control_name = "rl"  # or "pid" rl ppo
+        self.control_name = "ppo"  # or "pid" rl ppo
 
         # ---- rotation matrices ----
         self.r_now1 = np.zeros(9)
@@ -32,6 +32,7 @@ class DualUAVController:
         self.estimate_force_torque = np.zeros(6)
         self.estimate_force_torque_bias = np.zeros(6) # 这里是为了减去初始噪声数据
         self.force_torque_cmd = np.zeros(4) #这是记录控制指令的外力和外力矩
+        self.msg_data =  Float64MultiArray()
 
         # ---- publishers ----
         # self.cmd_pub1 = rospy.Publisher("/rl_cmd1", AttitudeTarget, queue_size=1) # /mavros/setpoint_raw/attitude
@@ -130,19 +131,22 @@ class DualUAVController:
         #                     3.92111155e-02,  9.98877523e-01, -2.65745258e-02,
         #                     -8.95017790e-03,  2.69450041e-02,  9.99596849e-01, 
         #                     3.36270314e-04, 3.35189723e-03, -3.17849743e-04])
-        joint_state[1] = joint_state[1] - 0.4
+        #joint_state[1] = joint_state[1] - 0.4
         if self.control_name == "rl":
             #pdb.set_trace()
             # ---- RL inference (8D action) ----
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state,self.err_vel, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
         elif self.control_name == "ppo":
-            action = modelPredictPPO(joint_state[:18])   # shape (8,)
-            action = np.concatenate([action, np.zeros(4)])
+            action1 = modelPredictPPO(joint_state[:18])   # shape (8,)
+            #pdb.set_trace()
+            #action2 = modelPredictPPO(joint_state[24:])
+            action2 = np.zeros(4)
+            action = np.concatenate([action1, action2])
         else: #control_name == "pid" 做稳定悬停时使用
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
             
-        print(joint_state)
-        print(action)
+        # print(joint_state)
+        # print(action)
         a1 = action[:4]
         a2 = action[4:]
 
@@ -190,9 +194,6 @@ class DualUAVController:
     def _compute_state_error(self, uav, r_now):
         #pdb.set_trace()
         err_pos = uav.pos - uav.nominal_pos # 这里出来还是nwu
-        # print(f"uav.pos is {uav.pos}")
-        # print(f"uav.nominal_pos is {uav.nominal_pos}")
-        # print(f"err_pos is {err_pos}")
         self.err_vel = body2worldVel(r_now, uav.vel)
         rot_err = errorRot(r_now, self.r_d)
         err_omega = errOmega(r_now, uav.omega)
@@ -209,7 +210,7 @@ class DualUAVController:
         msg.body_rate.y = action[2]  
         msg.body_rate.z = action[3] 
         
-        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.32  #这个值可以根据各子机进行调控 uav1 0.3
+        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.3  #这个值可以根据各子机进行调控 uav1 0.3
         #print(msg)
         pub.publish(msg)
 
@@ -234,7 +235,6 @@ class DualUAVController:
         pub.publish(m)
         
     def _publish_estimate_force_torque(self, estimate_force_torque, pub):
-        msg = Float64MultiArray()
-        msg.data = estimate_force_torque
-        pub.publish(msg)
+        self.msg_data.data = estimate_force_torque
+        pub.publish(self.msg_data)
         
