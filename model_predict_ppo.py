@@ -346,10 +346,10 @@ pre = "/home/jetson/airdocking/src/"
 policy = CompletePolicy(
     actor=Actor_net,
     obs_shape_dict=obs_shape_dict,
-    checkpoint_path= pre + 'velocity_control/scripts/model_obstacle/COPGTest1/8911',
-
+    #checkpoint_path= pre + 'velocity_control/scripts/model_obstacle/COPGTest1/8911',
     #checkpoint_path= pre +'velocity_control/scripts/model_obstacle/4/6901',
-    #checkpoint_path= pre +'velocity_control/scripts/model_obstacle/f450_motorlag_macopg/2491',
+    checkpoint_path= pre +'velocity_control/scripts/model_obstacle/f450_motorlag_macopg/2491',
+    
     using_obs_scale=False,
 )
 
