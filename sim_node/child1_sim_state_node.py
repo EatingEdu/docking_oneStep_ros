@@ -16,30 +16,46 @@ def main():
     nominal_pos_pub = rospy.Publisher("/child1/nominal_position", Point, queue_size=1)
     arm_pub = rospy.Publisher("/child1/start_pub_att", Bool, queue_size=1)
 
-    rate = rospy.Rate(50)
+    rate = rospy.Rate(20)
     t = 0.0
 
     while not rospy.is_shutdown():
         # ---- pose ----
         pose = PoseStamped()
         pose.header.stamp = rospy.Time.now()
-        pose.pose.position.x = np.sin(t)
-        pose.pose.position.y = np.cos(t)
-        pose.pose.position.z = 1.5
-        pose.pose.orientation.w = 1.0
+        if t < 11:
+            pose.pose.position.x = 0.1 #np.sin(t)
+            pose.pose.position.y = 0.2 #np.cos(t)
+            pose.pose.position.z = 1.5
+        else:
+            pose.pose.position.x = 0.2 #np.sin(t)
+            pose.pose.position.y = 0.4 #np.cos(t)
+            pose.pose.position.z = 1.2
+            
+        pose.pose.orientation.w = -0.691
+        pose.pose.orientation.x = -0.001
+        pose.pose.orientation.y = -0.006
+        pose.pose.orientation.z = -0.723
+        
         pose_pub.publish(pose)
 
         # ---- velocity ----
         vel = TwistStamped()
-        vel.twist.linear.x = 0.1*np.cos(t)
-        vel.twist.linear.y = -0.1*np.sin(t)
-        vel.twist.linear.z = 0.0
+        vel.twist.linear.x = 0.0001 #*np.cos(t)
+        vel.twist.linear.y = -0.001#*np.sin(t)
+        vel.twist.linear.z = 0.002
+        
+        vel.twist.angular.x = 0.1
+        vel.twist.angular.y = 0.1
+        vel.twist.angular.z = 0.1
+        
         vel_pub.publish(vel)
 
         # ---- state ----
         s = State()
         if t > 10.:
             s.mode = "OFFBOARD"
+            
         else:
             s.mode = "POS"
         state_pub.publish(s)

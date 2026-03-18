@@ -2,6 +2,35 @@ import numpy as np
 import math
 from numpy import random as nr
 import math
+from scipy.spatial.transform import Rotation as R
+
+
+def rot_nwu_to_quat_enu(r_now):
+    R_nwu = r_now.reshape(3,3)
+
+    T = np.array([
+        [0, 1, 0],
+        [-1, 0, 0],
+        [0, 0, 1]
+    ])
+
+    R_enu = T.T @ R_nwu
+
+    quat_xyzw = R.from_matrix(R_enu).as_quat()
+
+    # 转成 wxyz（你项目用的格式）
+    quat = np.array([
+        quat_xyzw[3],
+        quat_xyzw[0],
+        quat_xyzw[1],
+        quat_xyzw[2]
+    ])
+
+    if quat[0] < 0:
+        quat = -quat
+
+    return quat
+
 
 def eulerAnglesToRotationMatrix(theta) :
     R_x = np.array([[1,         0,                  0                   ],

@@ -25,7 +25,7 @@ class UAVState:
 
         # ---------- 新增变量 ----------
         self.pos = np.zeros(3)
-        self.quat = np.array([1, 0,0,0])
+        self.quat = np.array([1,0,0,0])
         #self.r_now = None
         self.vel = np.zeros(3)
         self.mav_vel_receive = None
@@ -141,10 +141,10 @@ class UAVState:
             data.twist.angular.z
         ])
 
-    # ===================== Utilities ===================== #
+    # # ===================== Utilities ===================== #
 
-    def ready(self):
-        return self.pos is not None and self.vel is not None and self.mode is not None
+    # def ready(self):
+    #     return self.pos is not None and self.vel is not None and self.mode is not None
 
 # uav1 = UAVState("/child1")
 # uav2 = UAVState("/child2")

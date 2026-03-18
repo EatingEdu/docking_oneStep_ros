@@ -11,7 +11,7 @@ from model_predict_pid import *
 
 from uav_state import UAVState
 from utils.math_util import *
-from model_predict_ppo import *
+#from model_predict_ppo import *
 
 import pdb
 
@@ -22,6 +22,7 @@ class DualUAVController:
         self.uav2 = uav2
 
         self.control_name = "rl"  # or "pid" rl ppo
+        self.airsim_uav = "uav1"
 
         # ---- rotation matrices ----
         self.r_now1 = np.zeros(9)
@@ -59,7 +60,8 @@ class DualUAVController:
         self.estimate_force_torque_bias_pub = rospy.Publisher("/estimate_force_torque_bias", Float64MultiArray, queue_size=1)
         
         self.force_torque_cmd_pub = rospy.Publisher("/force_torque_cmd", Float64MultiArray, queue_size=1)
-
+        self.dual_action_pub = rospy.Publisher("/dual/action", Float64MultiArray, queue_size=1)
+        
         self.timer = rospy.Timer(rospy.Duration(0.01), self.control_loop)
 
     # ================= control loop ================= #
@@ -102,9 +104,15 @@ class DualUAVController:
                         -4.28698817e-03, -8.48978641e-04, -5.55298466e-04]
         s1 = self._compute_state_error(self.uav1, self.r_now1)
         #s1 = state_error1[:18]
-        s2 = state_error1[24:]
+        
         s2 = self._compute_state_error(self.uav2, self.r_now2)  #这里需要注意，现在是都只把子机当前的位置作为了悬停位置，不做进一步的对接操作，需要注意
         #force_torque = np.zeros(6)\
+        
+        if self.airsim_uav == "uav1":
+            s2 = state_error1[24:]
+        elif self.airsim_uav == "uav2":
+            s1 = state_error1[:18]
+            
         if np.any(self.estimate_force_torque_bias):
             force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
         else:
@@ -115,27 +123,10 @@ class DualUAVController:
         joint_state = np.concatenate([s1,force_torque_input , s2]) #这里还需要加入力估计器的值
         
         self.state_error_pub.publish(data=joint_state.tolist())
-        #pdb.set_trace()
-        #以下是实机初始化下的数据  看起来这里可以尝试把之前的目标位置，uav1在对接轴上多减去0.4 ， uav2多加上0.4来抵抗他们的相向运动
-        # joint_state = np.array([ 1.36143342e-03, -0.4,  3.26842070e-04, 
-        #                    2.79980521e-03, 2.55478715e-03, -1.28504450e-03,  
-        #                    9.99915666e-01,  1.25961873e-02,  -3.17836034e-03, 
-        #                    -1.22950641e-02,  9.96592389e-01,  8.15631495e-02,
-        #                     4.19491858e-03, -8.15171883e-02,  9.96663108e-01, 
-        #                     -3.55130062e-04, -1.02324295e-03, -2.31230259e-03,  
-        #                     -1.17029937e-03, -4.12333943e-02, -4.74429736e-03,  
-        #                     5.27418451e-03,  7.28572858e-03,  1.52184721e-03,
-        #                     0.00000000e+00,  0.4,  0.00000000e+00,  
-        #                     7.88867834e-03, 5.48097601e-03,  3.78768077e-03,  
-        #                     9.99190875e-01, -3.89574607e-02, 9.99667479e-03,  
-        #                     3.92111155e-02,  9.98877523e-01, -2.65745258e-02,
-        #                     -8.95017790e-03,  2.69450041e-02,  9.99596849e-01, 
-        #                     3.36270314e-04, 3.35189723e-03, -3.17849743e-04])
-        #joint_state[1] = joint_state[1] - 0.4
         if self.control_name == "rl":
             #pdb.set_trace()
             # ---- RL inference (8D action) ----
-            action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state,self.err_vel, self.r_now1.reshape(3,3), self.rt)   # shape (8,)
+            action, self.estimate_force_torque, self.force_torque_cmd = modelPredict(self.uav1, joint_state, s1[3:6], self.r_now1.reshape(3,3), self.rt)   # shape (8,)
         elif self.control_name == "ppo":
             action1 = modelPredictPPO(joint_state[:18])   # shape (8,)
             #pdb.set_trace()
@@ -161,7 +152,7 @@ class DualUAVController:
         self._publish_estimate_force_torque(self.estimate_force_torque-self.estimate_force_torque_bias, self.estimate_force_torque_pub) #以uav1为参照
         self._publish_estimate_force_torque(self.estimate_force_torque_bias, self.estimate_force_torque_bias_pub) #以uav1为参照
         self._publish_estimate_force_torque(self.force_torque_cmd, self.force_torque_cmd_pub) #以uav1为参照
-
+        self._publish_estimate_force_torque(action, self.dual_action_pub)
     # ================= helper funcs ================= #
 
     def _handle_first(self, uav, nominal_pub, first_pub):
@@ -206,11 +197,12 @@ class DualUAVController:
 
     def _publish_cmd(self, pub, action):
         msg = AttitudeTarget()
+        msg.type_mask = 128
         msg.body_rate.x = action[1]  
         msg.body_rate.y = action[2]  
         msg.body_rate.z = action[3] 
         
-        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.3  #这个值可以根据各子机进行调控 uav1 0.3
+        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.48  #这个值可以根据各子机进行调控 uav1 0.3
         #print(msg)
         pub.publish(msg)
 
@@ -226,7 +218,6 @@ class DualUAVController:
         dt = 0.01
         rt = RT(v, w_vel , I_b = inertia * np.eye(3), u = np.array([0,0,0]), 
                         R_b = np.eye(3), torq_b = np.zeros(3).reshape(-1,1), K1 = K1, K1_K2 = K1_K2, dt = dt, m=uav.mass)
-
         return rt
     
     def _publish_offboard(self, uav, pub):

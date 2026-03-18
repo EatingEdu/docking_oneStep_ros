@@ -1,0 +1,18 @@
+<!-- Basic node for UAV 1 -->
+
+<launch>
+	<!-- number of childs -->
+	<!-- child ID -->
+	<!-- UAV1 -->
+    	<group ns="child1">
+		<arg name="child_id" value="1"/>
+		<!-- MAVROS -->	
+		<include file="$(find mavros)/launch/px4.launch">
+			<arg name="fcu_url" value="/dev/ttyUSB0:230400)"/>
+			<arg name="gcs_url" value=""/>
+			<arg name="tgt_system" value="$(arg child_id)"/>
+			<arg name="tgt_component" value="1"/>
+		</include>
+	</group>
+
+</launch>

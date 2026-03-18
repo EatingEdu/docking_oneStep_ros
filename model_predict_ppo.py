@@ -342,13 +342,13 @@ obs_shape_dict = {
     'obs': (1, 18)
 }
 
-pre = "/home/jetson/airdocking/src/"
+pre = "/home/fyt/project/iql_learn/implicit_q_learning/Airdocking/Airdocking_ros/docking2/"
 policy = CompletePolicy(
     actor=Actor_net,
     obs_shape_dict=obs_shape_dict,
-    #checkpoint_path= pre + 'velocity_control/scripts/model_obstacle/COPGTest1/8911',
+    checkpoint_path= pre + 'velocity_control/scripts/model_obstacle/COPGTest1/8911',
     #checkpoint_path= pre +'velocity_control/scripts/model_obstacle/4/6901',
-    checkpoint_path= pre +'velocity_control/scripts/model_obstacle/f450_motorlag_macopg/2491',
+    #checkpoint_path= pre +'velocity_control/scripts/model_obstacle/f450_motorlag_macopg/2491',
     
     using_obs_scale=False,
 )
@@ -385,3 +385,13 @@ if __name__ == "__main__":
     action = np.squeeze(action)
     print(action)
     #return action
+    
+    
+rospy.init_node("dual_uav_rl_controller", anonymous=True)
+
+uav1 = UAVState("/child1", mass = 2.0)
+uav2 = UAVState("/child2", mass = 2.1)
+
+controller = DualUAVController(uav1, uav2)
+
+rospy.spin()
