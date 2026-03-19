@@ -387,11 +387,11 @@ if __name__ == "__main__":
     #return action
     
     
-rospy.init_node("dual_uav_rl_controller", anonymous=True)
+# rospy.init_node("dual_uav_rl_controller", anonymous=True)
 
-uav1 = UAVState("/child1", mass = 2.0)
-uav2 = UAVState("/child2", mass = 2.1)
+# uav1 = UAVState("/child1", mass = 2.0)
+# uav2 = UAVState("/child2", mass = 2.1)
 
-controller = DualUAVController(uav1, uav2)
+# controller = DualUAVController(uav1, uav2)
 
-rospy.spin()
+# rospy.spin()

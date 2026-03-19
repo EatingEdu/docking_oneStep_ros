@@ -4,7 +4,7 @@
 	<!-- number of childs -->
 	<!-- child ID -->
 	<!-- UAV1 -->
-    	<group ns="child1">
+    	<group ns="child2">
 		<arg name="child_id" value="1"/>
 		<!-- MAVROS -->	
 		<include file="$(find mavros)/launch/px4.launch">

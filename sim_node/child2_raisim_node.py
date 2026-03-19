@@ -28,14 +28,14 @@ from geometry_msgs.msg import PoseStamped, TwistStamped, Vector3Stamped
 from jaxrl5 import wrappers
 from raisim_airdocking.env_air_sb3.env_params import rew_coeff_sou
 from miql import Airdocking_env
-from raisim_airdocking.env_air_sb3.AMP_sample_HITL_uav1 import * 
+from raisim_airdocking.env_air_sb3.AMP_sample_HITL_uav2 import * 
 from utils.quad_utils import *
 
 # ===================== 主节点 ===================== #
 
 class RaisimMavrosBridge:
 
-    def __init__(self, ns="/child1",): #ns为/child1 or /child2
+    def __init__(self, ns="/child2",): #ns为/child1 or /child2
 
         # ---------- 参数 ----------
         self.env_name = "AirDocking-v6"
@@ -121,7 +121,7 @@ class RaisimMavrosBridge:
     def make_env(self, env_name):
         gym.envs.register(
             id='AirDocking-v6',
-            entry_point='env_air_sb3.AMP_sample_HITL_uav1:AMP',  # 指向您的环境类
+            entry_point='env_air_sb3.AMP_sample_HITL_uav2:AMP',  # 指向您的环境类
         )
         env = gym.make(
             env_name,
@@ -145,7 +145,8 @@ class RaisimMavrosBridge:
         self.action[3] = data.body_rate.z
 
     def state2_cb(self, data):
-        self.state2 = np.array(data.data)[24:]
+        #pdb.set_trace()
+        self.state2 = np.array(data.data)[:18]
 
     # ===================== 主循环 ===================== #
 
@@ -169,7 +170,7 @@ class RaisimMavrosBridge:
 
             # 执行动作
             self.obs, _, done, _ = self.env.step(
-                np.concatenate([self.action, np.zeros(4)])
+                np.concatenate([np.zeros(4), self.action])
             )
 
             # 接触力（调试）
@@ -195,11 +196,10 @@ class RaisimMavrosBridge:
 
     def publish_mavros(self):
 
-        env = self.env.env.env.env.env
+        env = self.env.env.env.env.env2
 
         pos = env.position_w
         omega = env.angVel_b
-        #print(env.rot_b)
         quat = rot_nwu_to_quat_enu(env.rot_b)
         vel = env.rot_b.T @ env.lineVel_w
 
@@ -241,7 +241,7 @@ class RaisimMavrosBridge:
 
 if __name__ == "__main__":
 
-    rospy.init_node("uav1_raisim_mavros_bridge")
+    rospy.init_node("uav2_raisim_mavros_bridge")
 
     node = RaisimMavrosBridge()
 

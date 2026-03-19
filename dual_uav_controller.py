@@ -22,7 +22,7 @@ class DualUAVController:
         self.uav2 = uav2
 
         self.control_name = "rl"  # or "pid" rl ppo
-        self.airsim_uav = "uav1"
+        self.airsim_uav = 2
 
         # ---- rotation matrices ----
         self.r_now1 = np.zeros(9)
@@ -54,6 +54,7 @@ class DualUAVController:
 
         self.offboard_pub1 = rospy.Publisher("/child1/offboard_start", Int32, queue_size=1)
         self.offboard_pub2 = rospy.Publisher("/child2/offboard_start", Int32, queue_size=1)
+        self.airsim_uav_pub = rospy.Publisher("/dual/airsim_uav", Int32, queue_size=1)
 
         self.state_error_pub = rospy.Publisher("/dual/state_error", Float64MultiArray, queue_size=1)
         self.estimate_force_torque_pub = rospy.Publisher("/estimate_force_torque", Float64MultiArray, queue_size=1)
@@ -88,8 +89,8 @@ class DualUAVController:
         self._handle_first(self.uav2, self.nominal_pub2, self.randinit_pos_pub2)
 
         # ---- state error ----
-        state_error1 = [-2.42855889e-03, -8.27417672e-02, -2.42711231e-02, 
-                            -1.34465797e-02, -1.06117360e-01,  2.56579280e-01,  
+        state_error1 = [0.00000000e+00,  0.,  0.00000000e+00 , 
+                        8.53046961e-03, -1.31720593e-02,  6.15611486e-03,   
                             9.99968410e-01, -5.39710606e-03, -5.83150331e-03,  
                             5.47043514e-03,  9.99905229e-01,  1.26327295e-02,
                         5.76277077e-03, -1.26642315e-02,  9.99903202e-01,
@@ -103,16 +104,18 @@ class DualUAVController:
                         -9.27545037e-03,  2.20912397e-02,  9.99712944e-01 ,
                         -4.28698817e-03, -8.48978641e-04, -5.55298466e-04]
         s1 = self._compute_state_error(self.uav1, self.r_now1)
+        #print(s1)
         #s1 = state_error1[:18]
-        
+        #s1[1] = s1[1]
         s2 = self._compute_state_error(self.uav2, self.r_now2)  #这里需要注意，现在是都只把子机当前的位置作为了悬停位置，不做进一步的对接操作，需要注意
         #force_torque = np.zeros(6)\
-        
-        if self.airsim_uav == "uav1":
-            s2 = state_error1[24:]
-        elif self.airsim_uav == "uav2":
-            s1 = state_error1[:18]
-            
+        #pdb.set_trace()
+        # if self.airsim_uav == 1:
+        #     s2 = state_error1[24:]
+        # elif self.airsim_uav == 2:
+        #     s1 = state_error1[:18]
+        #s2[1] = s2[1]-1.0    
+        #print(s2)
         if np.any(self.estimate_force_torque_bias):
             force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
         else:
@@ -130,8 +133,8 @@ class DualUAVController:
         elif self.control_name == "ppo":
             action1 = modelPredictPPO(joint_state[:18])   # shape (8,)
             #pdb.set_trace()
-            #action2 = modelPredictPPO(joint_state[24:])
-            action2 = np.zeros(4)
+            action2 = modelPredictPPO(joint_state[24:])
+            #action2 = modelPredictPPO(joint_state[:18])
             action = np.concatenate([action1, action2])
         else: #control_name == "pid" 做稳定悬停时使用
             action, self.estimate_force_torque, self.force_torque_cmd = modelPredict_pid(self.uav1, self.uav2, self.r_now1.reshape(3,3), self.r_now2.reshape(3,3), self.rt)
@@ -148,6 +151,7 @@ class DualUAVController:
 
         self._publish_offboard(self.uav1, self.offboard_pub1)
         self._publish_offboard(self.uav2, self.offboard_pub2)
+        self._publish_airsim_uav(self.airsim_uav, self.airsim_uav_pub)
         
         self._publish_estimate_force_torque(self.estimate_force_torque-self.estimate_force_torque_bias, self.estimate_force_torque_pub) #以uav1为参照
         self._publish_estimate_force_torque(self.estimate_force_torque_bias, self.estimate_force_torque_bias_pub) #以uav1为参照
@@ -224,6 +228,12 @@ class DualUAVController:
         m = Int32()
         m.data = uav.start
         pub.publish(m)
+        
+    def _publish_airsim_uav(self, airsim_uav ,pub):
+        air = Int32()
+        air.data = airsim_uav
+        pub.publish(air)
+        
         
     def _publish_estimate_force_torque(self, estimate_force_torque, pub):
         self.msg_data.data = estimate_force_torque

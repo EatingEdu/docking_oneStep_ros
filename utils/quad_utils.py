@@ -5,31 +5,31 @@ import math
 from scipy.spatial.transform import Rotation as R
 
 
-def rot_nwu_to_quat_enu(r_now):
-    R_nwu = r_now.reshape(3,3)
+# def rot_nwu_to_quat_enu(r_now):
+#     R_nwu = r_now.reshape(3,3)
 
-    T = np.array([
-        [0, 1, 0],
-        [-1, 0, 0],
-        [0, 0, 1]
-    ])
+#     T = np.array([
+#         [0, 1, 0],
+#         [-1, 0, 0],
+#         [0, 0, 1]
+#     ])
 
-    R_enu = T.T @ R_nwu
+#     R_enu = T.T @ R_nwu
 
-    quat_xyzw = R.from_matrix(R_enu).as_quat()
+#     quat_xyzw = R.from_matrix(R_enu).as_quat()
 
-    # 转成 wxyz（你项目用的格式）
-    quat = np.array([
-        quat_xyzw[3],
-        quat_xyzw[0],
-        quat_xyzw[1],
-        quat_xyzw[2]
-    ])
+#     # 转成 wxyz（你项目用的格式）
+#     quat = np.array([
+#         quat_xyzw[3],
+#         quat_xyzw[0],
+#         quat_xyzw[1],
+#         quat_xyzw[2]
+#     ])
 
-    if quat[0] < 0:
-        quat = -quat
+#     if quat[0] < 0:
+#         quat = -quat
 
-    return quat
+#     return quat
 
 
 def eulerAnglesToRotationMatrix(theta) :
@@ -186,6 +186,66 @@ def quat2rot_change(quat):
                         [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1.0 - 2*x*x -2*y*y]])
     return rot
 
+def rot_nwu_to_quat_enu(R_nwu):
+    """
+    输入：
+        R_nwu: 3x3，body → world (NWU)
+    输出：
+        quat_enu: [w, x, y, z]（ENU）
+    """
+
+    # NWU → ENU 变换矩阵（绕 z 轴 -90°）
+    T = np.array([
+        [0, -1, 0],
+        [1,  0, 0],
+        [0,  0, 1]
+    ])
+
+    # 坐标系变换
+    R_enu = T @ R_nwu 
+
+    # 转四元数
+    quat = rotmat_to_quat(R_enu)
+
+    return quat
+
+def rotmat_to_quat(R):
+    """
+    旋转矩阵 → 四元数
+    返回 [w, x, y, z]
+    """
+    q = np.zeros(4)
+    trace = np.trace(R)
+
+    if trace > 0:
+        s = 0.5 / np.sqrt(trace + 1.0)
+        q[0] = 0.25 / s
+        q[1] = (R[2,1] - R[1,2]) * s
+        q[2] = (R[0,2] - R[2,0]) * s
+        q[3] = (R[1,0] - R[0,1]) * s
+    else:
+        if R[0,0] > R[1,1] and R[0,0] > R[2,2]:
+            s = 2.0 * np.sqrt(1.0 + R[0,0] - R[1,1] - R[2,2])
+            q[0] = (R[2,1] - R[1,2]) / s
+            q[1] = 0.25 * s
+            q[2] = (R[0,1] + R[1,0]) / s
+            q[3] = (R[0,2] + R[2,0]) / s
+        elif R[1,1] > R[2,2]:
+            s = 2.0 * np.sqrt(1.0 + R[1,1] - R[0,0] - R[2,2])
+            q[0] = (R[0,2] - R[2,0]) / s
+            q[1] = (R[0,1] + R[1,0]) / s
+            q[2] = 0.25 * s
+            q[3] = (R[1,2] + R[2,1]) / s
+        else:
+            s = 2.0 * np.sqrt(1.0 + R[2,2] - R[0,0] - R[1,1])
+            q[0] = (R[1,0] - R[0,1]) / s
+            q[1] = (R[0,2] + R[2,0]) / s
+            q[2] = (R[1,2] + R[2,1]) / s
+            q[3] = 0.25 * s
+
+    return q
+
+
 class OUNoise:
     """Ornstein–Uhlenbeck process"""
     def __init__(self, action_dimension, mu=0, theta=0.15, sigma=0.3):
@@ -212,9 +272,13 @@ class OUNoise:
 
 
 if __name__ == "__main__":
+    
     r = np.array([[ 0.72585871,  0.68784383,  0.        ],
         [-0.68784383,  0.72585871,  0.        ],
         [ 0.        ,  0.        ,  1.        ]])
-    quan = EulerAndQuaternionTransform(np.array([0, 0, -285/180]))
+    quan = rot_nwu_to_quat_enu(r)
+    r_now = quat2rot_change(quan)
+    
     print(f"quan is {quan}")
+    print(r_now)
     #print(rotationMatrixToEulerAngles(r) * 180/3.14)

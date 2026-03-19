@@ -105,16 +105,23 @@ npz_path = "./model/0225_model0212Sim60k_data4_9_14_seg8_2_off08_sr08__envRanEFD
 npz_path = "./model/0225_model0212Sim60k_data4_9_14_seg8_2_off08_sr08__envRanEFDALLStep__48750_output_arm_params/actor_arm.npz"
 npz_path = "./model/modeldata8+9+10_envTTTrandomM41k__data9+11+12_envTTTrandomM15_offRatio05_sR05__13625_output_arm_params/actor_arm.npz"
 
-# model seed
-npz_path = "./model/data16_of05_sr02__envNoEFD_att15__27625_output_arm_params/actor_arm.npz"
-# npz_path = "./model/data16_of06_sr08__envNoEFD_att15__47000_output_arm_params/actor_arm.npz"
-npz_path = "./model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_params/actor_arm.npz"
+# model seed  除了最后一组都有点晃
+#npz_path = "./model/data16_of05_sr02__envNoEFD_att15__27625_output_arm_params/actor_arm.npz"
+npz_path = "./model/data16_of06_sr08__envNoEFD_att15__47000_output_arm_params/actor_arm.npz"
+#npz_path = "./model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_params/actor_arm.npz"
 
 #0311 model
-npz_path = "./model/0311_msiql_data16_ofr05sr05_env7__11250_output_arm_params/actor_arm.npz"
-npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__10625_output_arm_params/actor_arm.npz"  # 这个感觉还稍微保守一些
-npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__14625_output_arm_params/actor_arm.npz"
+# npz_path = "./model/0311_msiql_data16_ofr05sr05_env7__11250_output_arm_params/actor_arm.npz"
+# npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__10625_output_arm_params/actor_arm.npz"  # 这个感觉还稍微保守一些
+#npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__14625_output_arm_params/actor_arm.npz"
 
+#0316 MODEL
+npz_path = "/home/fyt/project/SPC_MIQL/AlignIQL/Airdocking/test/model_real/0316_0311Blue25k_data16+18+22_env7__19000_output_arm_params/actor_arm.npz"
+npz_path = "/home/fyt/project/SPC_MIQL/AlignIQL/Airdocking/miql/real_model/0316_0311Blue25k_data16+18+22_env7__30000_output_arm_params/actor_arm.npz"
+
+#0317model
+npz_path = "/home/fyt/project/SPC_MIQL/AlignIQL/Airdocking/miql/real_model/0317_0316_19k_data16+18+22+23___ofr05sr05Env8Att2010Noise05__18500_output_arm_params/actor_arm.npz"  #貌似误差更小 uavAir
+npz_path = "/home/fyt/project/SPC_MIQL/AlignIQL/Airdocking/miql/real_model/0317_0316_30k_data23+24___ofr05sr05Env8Att2010Noise05__28000_output_arm_params/actor_arm.npz"
 print(npz_path)
 predictor = ModelPredict(npz_path)
 dynamics_uav = Dynamics(thrust_to_weight=1/0.5)  # 这个推重比要根据实际调整一下
