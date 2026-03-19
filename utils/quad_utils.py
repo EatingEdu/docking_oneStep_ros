@@ -145,17 +145,17 @@ def EulerAndQuaternionTransform( intput_data):
             y = math.degrees(y)
         return [r,p,y]
 
-def quat2rot_change(quat):
-    if quat[0] < 0:
-        quat = -quat
-    w = quat[0]
-    x = quat[1]
-    y = quat[2]
-    z = quat[3]        
-    rot = np.array([[2*x*y + 2*z*w, 1.0 - 2*x*x - 2*z*z,  2*y*z - 2*x*w],
-                        [2*y*y + 2*z*z -1.0, 2*z*w - 2*x*y, -2*x*z - 2*y*w],
-                        [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1.0 - 2*x*x -2*y*y]])
-    return rot
+# def quat2rot_change(quat):
+#     if quat[0] < 0:
+#         quat = -quat
+#     w = quat[0]
+#     x = quat[1]
+#     y = quat[2]
+#     z = quat[3]        
+#     rot = np.array([[2*x*y + 2*z*w, 1.0 - 2*x*x - 2*z*z,  2*y*z - 2*x*w],
+#                         [2*y*y + 2*z*z -1.0, 2*z*w - 2*x*y, -2*x*z - 2*y*w],
+#                         [2*x*z - 2*y*w, 2*y*z + 2*x*w, 1.0 - 2*x*x -2*y*y]])
+#     return rot
 
 class OUNoise:
     """Ornstein–Uhlenbeck process"""
