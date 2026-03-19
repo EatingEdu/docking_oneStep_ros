@@ -113,7 +113,16 @@ npz_path = "./model/0310_M27625_data18_0f05sr08__att30EnvV7__13125_output_arm_pa
 #0311 model
 npz_path = "./model/0311_msiql_data16_ofr05sr05_env7__11250_output_arm_params/actor_arm.npz"
 npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__10625_output_arm_params/actor_arm.npz"  # 这个感觉还稍微保守一些
-#npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__14625_output_arm_params/actor_arm.npz"
+npz_path = "./model/0311_msiql_data16+18_ofr05sr07_env7__14625_output_arm_params/actor_arm.npz"
+
+
+#0316 MODEL
+npz_path = "./model/0316_0311Blue25k_data16+18+22_env7__19000_output_arm_params/actor_arm.npz"
+npz_path = "./model/0316_0311Blue25k_data16+18+22_env7__30000_output_arm_params/actor_arm.npz"
+
+#0317model
+npz_path = "./model/0317_0316_19k_data16+18+22+23___ofr05sr05Env8Att2010Noise05__18500_output_arm_params/actor_arm.npz"  #貌似误差更小 uavAir
+npz_path = "./model/0317_0316_30k_data23+24___ofr05sr05Env8Att2010Noise05__28000_output_arm_params/actor_arm.npz"
 
 print(npz_path)
 predictor = ModelPredict(npz_path)
@@ -131,7 +140,7 @@ def modelPredict(uav, state_error, vel, rot, rt):
     dynamics_uav.update_state(uav.pos, vel, uav.omega, rot) #这里主要时为了做外力估计
     action = predictor.eval_action(state_error)
     #pdb.set_trace()
-    action = filter.filter(action)
+    #action = filter.filter(action)
     
     force_torque = pid_control_uav.step_force_torque(dynamics=dynamics_uav1, goal=uav.nominal_pos, dt=dt, action=action[:4])
     #print(f"rl cmd force_torque is {force_torque}")

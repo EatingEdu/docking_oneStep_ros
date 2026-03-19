@@ -206,6 +206,7 @@ class DualUAVController:
 
     def _publish_cmd(self, pub, action):
         msg = AttitudeTarget()
+        msg.type_mask = 128
         msg.body_rate.x = action[1]  
         msg.body_rate.y = action[2]  
         msg.body_rate.z = action[3] 
