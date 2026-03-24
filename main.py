@@ -5,8 +5,10 @@ from dual_uav_controller import DualUAVController
 
 rospy.init_node("dual_uav_rl_controller", anonymous=True)
 
-uav1 = UAVState("/child1", mass = 2.0)
-uav2 = UAVState("/child2", mass = 2.1)
+
+stable_nominal = True
+uav1 = UAVState("/child1", mass = 2.0, stable_nominal=stable_nominal)
+uav2 = UAVState("/child2", mass = 2.1, stable_nominal=stable_nominal)
 
 controller = DualUAVController(uav1, uav2)
 

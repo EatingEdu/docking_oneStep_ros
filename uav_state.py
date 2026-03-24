@@ -7,8 +7,9 @@ from std_msgs.msg import Bool
 
 
 class UAVState:
-    def __init__(self, ns="/child1", mass = 1.5):
+    def __init__(self, ns="/child1", mass = 1.5, stable_nominal=False):
         self.ns = ns
+        self.stable_nominal = stable_nominal
 
         # ---------- 原始变量 ----------
         self.mass = mass
@@ -16,6 +17,7 @@ class UAVState:
         self.nominal_pos = np.zeros(3)
         self.nominal_euler = None
         self.arm = None
+        
 
         self.sw = None
         self.start = 0
@@ -119,7 +121,14 @@ class UAVState:
             self.randinit_pos.pose.position.x = self.pos[0]
             self.randinit_pos.pose.position.y = self.pos[1]
             self.randinit_pos.pose.position.z = self.pos[2]
-            self.nominal_pos[:] = self.pos.copy()
+            
+            if self.stable_nominal:
+                if self.ns == "/child1":
+                    self.nominal_pos = np.array([0,  1., 1.5])
+                elif self.ns == "/child2":
+                    self.nominal_pos = np.array([0, -2,  1.5])
+            else:
+                self.nominal_pos[:] = self.pos.copy()
         #     self.first = 1
         # elif self.first == 0:
         #     self.randinit_pos = deepcopy(data)
