@@ -203,7 +203,7 @@ class DualUAVController:
         msg.body_rate.y = action[2]  
         msg.body_rate.z = action[3] 
         
-        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.3  #这个值可以根据各子机进行调控 uav1 0.3
+        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.35  #这个值可以根据各子机进行调控 uav1 0.3
         #print(msg)
         pub.publish(msg)
 

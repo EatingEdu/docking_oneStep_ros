@@ -122,7 +122,16 @@ npz_path = "./model/0316_0311Blue25k_data16+18+22_env7__30000_output_arm_params/
 
 #0317model
 npz_path = "./model/0317_0316_19k_data16+18+22+23___ofr05sr05Env8Att2010Noise05__29750_output_arm_params/actor_arm.npz"  #貌似误差更小 uavAir
-#npz_path = "./model/0317_0316_30k_data23+24___ofr05sr05Env8Att2010Noise05__28000_output_arm_params/actor_arm.npz"
+npz_path = "./model/0317_0316_30k_data23+24___ofr05sr05Env8Att2010Noise05__28000_output_arm_params/actor_arm.npz"
+
+
+# 0322 model
+npz_path = "./model/0322/0321_data16_21-24_M28k___ofr05sr05c-1_Env9_posC1.2_Noise0550hz__12875_output_arm_params/actor_arm.npz"
+npz_path = "./model/0322/0321_data23_24_M28k___ofr05sr05c-1_Env9_posC1.2_Noise0550hz__20500_output_arm_params/actor_arm.npz"
+npz_path = "./model/0322/0321_data23_24_M28k___ofr05sr05c0_Env9_posC1.2_Noise0550hz__18000_output_arm_params/actor_arm.npz"
+npz_path = "./model/0322/0321_data23_24_M28k___ofr05sr05c0_Env9_posC1.2_Noise05100hz__13875_output_arm_params/actor_arm.npz"
+npz_path = "./model/0322/0322_data16_21-24_M28k___ofr05sr05c-1_Env8_posC1.2_Noise0550hz__4750_output_arm_params/actor_arm.npz"
+npz_path = "./model/0322/0322_data16_21-24_M28k___ofr05sr07c-1_Env8_posC1.2_Noise0550hz__6000_output_arm_params/actor_arm.npz"
 
 print(npz_path)
 predictor = ModelPredict(npz_path)
