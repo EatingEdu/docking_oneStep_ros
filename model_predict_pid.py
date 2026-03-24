@@ -328,14 +328,14 @@ def modelPredict_pid(uav1, uav2, rot1, rot2, rt):
     #pdb.set_trace()
     force_torque = pid_control_uav1.step_force_torque(dynamics=dynamics_uav1, goal=uav1.nominal_pos, dt=dt, action=action1)
     print(f"pid cmd force_torque is {force_torque}")
-    estimate_force_torque = get_estimate_force_torque(rt, uav1, rot1, force_torque)
+    estimate_force_torque = get_estimate_force_torque(rt, uav1, vel1, rot1, force_torque)
     force_torque_cmd = np.array([force_torque[0], force_torque[1][0], force_torque[1][1], force_torque[1][2]])
     return np.concatenate([action1, action2]), estimate_force_torque, force_torque_cmd
 
 
 
         
-def get_estimate_force_torque(rt, uav, rot, force_torque):
+def get_estimate_force_torque(rt, uav, vel, rot, force_torque):
     rt.u = np.array([0.,0.,force_torque[0]])
     rt.torq_b = np.array(force_torque[1:]).reshape(-1,1)
     rt.v = uav.vel.reshape(-1,1)

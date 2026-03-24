@@ -100,11 +100,12 @@ class DualUAVController:
         #s2 = state_error1[24:]
         s2 = self._compute_state_error(self.uav2, self.r_now2)  #这里需要注意，现在是都只把子机当前的位置作为了悬停位置，不做进一步的对接操作，需要注意
         #force_torque = np.zeros(6)\
-        if np.any(self.estimate_force_torque_bias):
+        if self.uav1.start == 1:
             force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
         else:
             force_torque_input = np.zeros(6)
-        force_torque_input = np.zeros(6)
+        # force_torque_input = np.zeros(6)
+        # force_torque_input[1] = 0.5
         # force_torque_input = np.array([ -1.17029937e-03, -4.12333943e-02, -4.74429736e-03,  
         #                                5.27418451e-03,  7.28572858e-03,  1.52184721e-03,])
         joint_state = np.concatenate([s1, force_torque_input , s2]) #这里还需要加入力估计器的值
@@ -143,9 +144,9 @@ class DualUAVController:
         a2 = action[4:]
 
         # ---- publish commands ----
-        self._publish_cmd(self.cmd_pub1, a1)
+        self._publish_cmd(self.cmd_pub1, a1, self.uav1)
         #print(a1)
-        self._publish_cmd(self.cmd_pub2, a2)
+        self._publish_cmd(self.cmd_pub2, a2, self.uav2)
 
         
         
@@ -154,7 +155,7 @@ class DualUAVController:
         self._publish_offboard(self.uav1, self.offboard_pub1)
         self._publish_offboard(self.uav2, self.offboard_pub2)
         
-        self._publish_estimate_force_torque(self.estimate_force_torque-self.estimate_force_torque_bias, self.estimate_force_torque_pub) #以uav1为参照
+        self._publish_estimate_force_torque(self.estimate_force_torque - self.estimate_force_torque_bias, self.estimate_force_torque_pub) #以uav1为参照
         self._publish_estimate_force_torque(self.estimate_force_torque_bias, self.estimate_force_torque_bias_pub) #以uav1为参照
         self._publish_estimate_force_torque(self.force_torque_cmd, self.force_torque_cmd_pub) #以uav1为参照
         self._publish_estimate_force_torque(action, self.dual_action_pub)
@@ -162,7 +163,7 @@ class DualUAVController:
     # ================= helper funcs ================= #
 
     def _handle_first(self, uav, nominal_pub):
-        if uav.first == 1: 
+        if uav.start == 0: 
             #pdb.set_trace()
             """
             进入oddboard，记录当前位置为目标位置，
@@ -171,9 +172,11 @@ class DualUAVController:
             # uav.nominal_pos[0] = uav.randinit_pos.pose.position.x
             # uav.nominal_pos[1] = uav.randinit_pos.pose.position.y
             # uav.nominal_pos[2] = uav.randinit_pos.pose.position.z
-            uav.first = 2
+            #uav.first = 2
             if uav.ns == "/child1":  #这里力估计器只记录无人机的外力估计值
+                #pdb.set_trace()
                 self.estimate_force_torque_bias = self.estimate_force_torque
+            
 
         #北西天-》东北天 与mavros数据对应起来
         p = Point()  
@@ -196,14 +199,17 @@ class DualUAVController:
             err_omega   # 这里的角速度值可以适当做出调整
         ])
 
-    def _publish_cmd(self, pub, action):
+    def _publish_cmd(self, pub, action, uav):
         msg = AttitudeTarget()
         msg.type_mask = 128
         msg.body_rate.x = action[1]  
         msg.body_rate.y = action[2]  
         msg.body_rate.z = action[3] 
         
-        msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.35  #这个值可以根据各子机进行调控 uav1 0.3
+        if uav.ns == "/child1":
+            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.33 # uav1 比px4的拉力值少0.02
+        else:
+            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.35 # uav2 与px4的拉力值相同
         #print(msg)
         pub.publish(msg)
 

@@ -114,18 +114,19 @@ class UAVState:
         self.quat = quat
 
         #randinit_pos 始终为北西天
-        if self.first == 0 and self.start == 1:
-            self.randinit_pos = deepcopy(data)
-            self.randinit_pos.pose.position.x = self.pos[0]
-            self.randinit_pos.pose.position.y = self.pos[1]
-            self.randinit_pos.pose.position.z = self.pos[2]
-            self.first = 1
-        elif self.first == 0:
+        if self.start == 0 :
             self.randinit_pos = deepcopy(data)
             self.randinit_pos.pose.position.x = self.pos[0]
             self.randinit_pos.pose.position.y = self.pos[1]
             self.randinit_pos.pose.position.z = self.pos[2]
             self.nominal_pos[:] = self.pos.copy()
+        #     self.first = 1
+        # elif self.first == 0:
+        #     self.randinit_pos = deepcopy(data)
+        #     self.randinit_pos.pose.position.x = self.pos[0]
+        #     self.randinit_pos.pose.position.y = self.pos[1]
+        #     self.randinit_pos.pose.position.z = self.pos[2]
+        #     self.nominal_pos[:] = self.pos.copy()
 
     def mav_vel_receive_cb(self, data):
         self.mav_vel_receive = data

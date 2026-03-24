@@ -153,7 +153,7 @@ def modelPredict(uav, state_error, vel, rot, rt):
     
     force_torque = pid_control_uav.step_force_torque(dynamics=dynamics_uav1, goal=uav.nominal_pos, dt=dt, action=action[:4])
     #print(f"rl cmd force_torque is {force_torque}")
-    estimate_force_torque = get_estimate_force_torque(rt, uav, rot, force_torque)
+    estimate_force_torque = get_estimate_force_torque(rt, uav, vel, rot, force_torque)
     force_torque_cmd = np.array([force_torque[0], force_torque[1][0], force_torque[1][1], force_torque[1][2]])
     return action, estimate_force_torque , force_torque_cmd
 
