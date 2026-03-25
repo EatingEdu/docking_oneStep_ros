@@ -101,7 +101,10 @@ class DualUAVController:
         s2 = self._compute_state_error(self.uav2, self.r_now2)  #这里需要注意，现在是都只把子机当前的位置作为了悬停位置，不做进一步的对接操作，需要注意
         #force_torque = np.zeros(6)\
         if self.uav1.start == 1:
-            force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
+            force_torque_input = np.zeros(6)
+            #force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
+            tmp = self.estimate_force_torque - self.estimate_force_torque_bias
+            force_torque_input[1] = tmp[1]
         else:
             force_torque_input = np.zeros(6)
         # force_torque_input = np.zeros(6)
@@ -209,7 +212,7 @@ class DualUAVController:
         if uav.ns == "/child1":
             msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.33 # uav1 比px4的拉力值少0.02
         else:
-            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.35 # uav2 与px4的拉力值相同
+            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.22 # uav2 与px4的拉力值相同
         #print(msg)
         pub.publish(msg)
 
