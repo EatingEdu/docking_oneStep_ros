@@ -124,9 +124,9 @@ class UAVState:
             
             if self.stable_nominal:
                 if self.ns == "/child1":
-                    self.nominal_pos = np.array([0,  1, 1.5])
+                    self.nominal_pos = np.array([0.,  0.97, 1.5])
                 elif self.ns == "/child2":
-                    self.nominal_pos = np.array([0, -1.5,  1.5])
+                    self.nominal_pos = np.array([0., -1.5,  1.5])
             else:
                 self.nominal_pos[:] = self.pos.copy()
         #     self.first = 1
