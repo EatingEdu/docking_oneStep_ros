@@ -33,7 +33,7 @@ class DualUAVController:
         self.estimate_force_torque_bias = np.zeros(6) # 这里是为了减去初始噪声数据
         self.force_torque_cmd = np.zeros(4) #这是记录控制指令的外力和外力矩
         self.msg_data =  Float64MultiArray()
-        self.count = 0.
+        self.start_count = 0.
 
         # ---- publishers ----
         # self.cmd_pub1 = rospy.Publisher("/rl_cmd1", AttitudeTarget, queue_size=1) # /mavros/setpoint_raw/attitude
@@ -101,10 +101,19 @@ class DualUAVController:
         s2 = self._compute_state_error(self.uav2, self.r_now2)  #这里需要注意，现在是都只把子机当前的位置作为了悬停位置，不做进一步的对接操作，需要注意
         #force_torque = np.zeros(6)\
         if self.uav1.start == 1:
+            self.start_count += 1
             force_torque_input = np.zeros(6)
             #force_torque_input =  self.estimate_force_torque - self.estimate_force_torque_bias
+            
+            """
+            等待offoard平稳之后，重新计算一遍力估计器的偏置
+            """
+            if self.start_count == 1000: 
+                self.estimate_force_torque_bias = self.estimate_force_torque
             tmp = self.estimate_force_torque - self.estimate_force_torque_bias
-            force_torque_input[1] = tmp[1]
+            
+            force_torque_input = tmp #所有方向上外力叠加 
+            #force_torque_input[1] = tmp[1] 只使用对接方向上的外力
         else:
             force_torque_input = np.zeros(6)
         # force_torque_input = np.zeros(6)
@@ -178,6 +187,7 @@ class DualUAVController:
             #uav.first = 2
             if uav.ns == "/child1":  #这里力估计器只记录无人机的外力估计值
                 #pdb.set_trace()
+                self.start_count = 0
                 self.estimate_force_torque_bias = self.estimate_force_torque
             
 
