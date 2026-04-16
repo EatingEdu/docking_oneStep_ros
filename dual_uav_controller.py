@@ -210,9 +210,9 @@ class DualUAVController:
         msg.body_rate.z = action[3] 
         
         if uav.ns == "/child1":
-            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.27 # uav1 比px4的拉力值少0.02
+            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.255 # uav1 比px4的拉力值少0.02
         else:
-            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.22 # uav2 与px4的拉力值相同
+            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.2 # uav2 与px4的拉力值相同
         #print(msg)
         pub.publish(msg)
 

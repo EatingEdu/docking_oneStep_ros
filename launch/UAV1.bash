@@ -21,6 +21,7 @@
 rosrun mavros mavcmd -n /child1/mavros long 511 32 450 0 0 0 0 0
 rosrun mavros mavcmd -n /child1/mavros long 511 31 450 0 0 0 0 0
 rosrun mavros mavcmd -n /child1/mavros long 511 65 900 0 0 0 0 0
+rosrun topic_tools relay /vrpn_client_node2/uav1/pose /child1/mavros/vision_pose/pose
 
 # rosrun topic_tools relay /vrpn_client_node1/UAV1/pose /child1/mavros/vision_pose/pose
 
