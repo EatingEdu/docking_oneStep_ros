@@ -11,6 +11,7 @@ from model_predict_pid import *
 
 from uav_state import UAVState
 from utils.math_util import *
+from utils.quad_utils import *
 #from model_predict_ppo import *
 
 import pdb
@@ -59,6 +60,9 @@ class DualUAVController:
         self.state_error_pub = rospy.Publisher("/dual/state_error", Float64MultiArray, queue_size=1)
         self.estimate_force_torque_pub = rospy.Publisher("/estimate_force_torque", Float64MultiArray, queue_size=1)
         self.estimate_force_torque_bias_pub = rospy.Publisher("/estimate_force_torque_bias", Float64MultiArray, queue_size=1)
+        self.angle1_pub = rospy.Publisher("/child1/angle", Float64MultiArray, queue_size=1)
+        self.angle2_pub = rospy.Publisher("/child2/angle", Float64MultiArray, queue_size=1)
+        
         
         self.force_torque_cmd_pub = rospy.Publisher("/force_torque_cmd", Float64MultiArray, queue_size=1)
         self.dual_action_pub = rospy.Publisher("/dual/action", Float64MultiArray, queue_size=1)
@@ -76,6 +80,10 @@ class DualUAVController:
         self.r_now1 = quat2rot_change(self.uav1.quat)
         self.r_now2 = quat2rot_change(self.uav2.quat)
 
+        self.angle1 = np.array(EulerAndQuaternionTransform(self.uav1.quat))/3.14*180
+        self.angle2 = np.array(EulerAndQuaternionTransform(self.uav2.quat))/3.14*180
+        # print(self.angle1)
+        # print(self.angle2)
         # ---- nominal position init ----
         self._handle_first(self.uav1, self.nominal_pub1)
         self._handle_first(self.uav2, self.nominal_pub2)
@@ -108,11 +116,11 @@ class DualUAVController:
             """
             等待offoard平稳之后，重新计算一遍力估计器的偏置
             """
-            if self.start_count == 1000: 
-                self.estimate_force_torque_bias = self.estimate_force_torque
+            # if self.start_count == 300: 
+            #     self.estimate_force_torque_bias = self.estimate_force_torque
             tmp = self.estimate_force_torque - self.estimate_force_torque_bias
             
-            force_torque_input = tmp #所有方向上外力叠加 
+            force_torque_input[1] = tmp[1] #对接方向上外力叠加 
             #force_torque_input[1] = tmp[1] 只使用对接方向上的外力
         else:
             force_torque_input = np.zeros(6)
@@ -171,7 +179,8 @@ class DualUAVController:
         self._publish_estimate_force_torque(self.estimate_force_torque_bias, self.estimate_force_torque_bias_pub) #以uav1为参照
         self._publish_estimate_force_torque(self.force_torque_cmd, self.force_torque_cmd_pub) #以uav1为参照
         self._publish_estimate_force_torque(action, self.dual_action_pub)
-        
+        self._publish_estimate_force_torque(self.angle1, self.angle1_pub)
+        self._publish_estimate_force_torque(self.angle2, self.angle2_pub)
     # ================= helper funcs ================= #
 
     def _handle_first(self, uav, nominal_pub):
@@ -220,9 +229,9 @@ class DualUAVController:
         msg.body_rate.z = action[3] 
         
         if uav.ns == "/child1":
-            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.255 # uav1 比px4的拉力值少0.02
+            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.27 # uav1 比px4的拉力值少 0.255
         else:
-            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.2 # uav2 与px4的拉力值相同
+            msg.thrust = (action[0] + 1) / 1.93 * 2 * 1.0 * 0.285 # uav2 与px4的拉力值相同 0.2  
         #print(msg)
         pub.publish(msg)
 
